@@ -39,6 +39,8 @@ def getApp(doc):
                 vizAppList.append(vizApp)
 
             initSession = False
+
+    # On clean les instances utilisées créés au cours de la construction
     VizConstructor.vizInstancesList.clear()
     row = pn.Row()
 
