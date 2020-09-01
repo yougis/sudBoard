@@ -12,8 +12,8 @@ class BoardAdmin(admin.ModelAdmin):
 admin.site.register(BoardEntity, BoardAdmin)
 
 class VizEntityAdmin(admin.ModelAdmin):
-    list_display = ('title', 'type')
-
+    list_display = ('title', 'slug')
+    prepopulated_fields = {'slug': ('title',)}
 
 admin.site.register(VizEntity, VizEntityAdmin)
 

@@ -3,14 +3,18 @@ import json
 from django.db import models
 from vizApps.Utils.Utils import DicoUtils, ParamsUtils
 from vizApps.services.VizConstructorService import ChoroplethMapConstructor, BarGraphConstructor
-from vizApps.domain.vizElementPsud.Viztest import *
+from vizApps.domain.TypeVizEnum import TypeVizEnum
+
 import vizApps.services.VizConstructorService as VizConstructor
 
 
 class VizEntity(models.Model):
     session = None
     title = models.CharField(max_length=30)
+    slug = models.SlugField(max_length=50, unique=True)
     parameters = JSONField(blank=True)
+
+    viz=None
 
     type = models.CharField(
         max_length=15,
@@ -30,24 +34,23 @@ class VizEntity(models.Model):
 
 
     def save(self, *args, **kwargs):
-        typeViz_to_create = self.dicWrapper(self.type)
-        if(typeViz_to_create):
-            excludeKey = {"name"} # on ne peut pas modifier le nom d'une viz
-            dicParam = ParamsUtils.recursiveParamToJsonDict(self,parameters=typeViz_to_create.param.get_param_values())
-            parameters = DicoUtils.excludingkeys(self,(dicParam),excludeKey)
-            self.parameters = json.dumps(parameters)
+        #try:
+        #    self.viz = kwargs['viz']
+        #except:
+        #    ''
+        #if(self.viz):
+        viz=ChoroplethMapConstructor(id="1")
+        excludeKey = {"name"}  # on ne peut pas modifier le nom d'une viz
+        dicParam = ParamsUtils.recursiveParamToJsonDict(self, parameters=viz.param.get_param_values())
+        parameters = DicoUtils.excludingkeys(self, (dicParam), excludeKey)
+        self.parameters = json.dumps(parameters)
         super().save(*args, **kwargs)
 
 
     def createVizFromJsonParameters(self, initSession):
-
-
-
-        # On cherche si l'instance de la viz existe déjà
+        # On cherche si l'instance de la viz existe déjà dans la session
 
         viz = VizConstructor.getVizInstancesById(self.id)
-
-
         if(viz and initSession == False):
             print(viz, ' ', id(viz))
             return viz
@@ -57,17 +60,11 @@ class VizEntity(models.Model):
             result_dict = ParamsUtils.jsonParamsContructor(self,dictionnary=DicoUtils.excludingkeys(self, dico=json.loads(self.parameters), excludingKey=excludeKey))
 
             for p in result_dict:
-                print(p)
-                if(p[0]=='datasource'):
-                    datasource = DataSource()
-                    datasource.dataSourceCatalogue = p[1]['dataSourceCatalogue']
-                    viz.param.set_param(p[0],datasource)
-                else:
-                    viz.param.set_param(p[0],p[1])
+                viz.param.set_param(p[0],p[1])
                 # typeViz est maintenant une instance Viz parmétrée
 
         print(viz, ' ', id(viz))
         return viz
 
     def getVizById(self, id):
-        return BaseVizConstructor.get(id)
+        return VizConstructor.get(id)

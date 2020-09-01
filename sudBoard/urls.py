@@ -26,12 +26,12 @@ app_name = 'vizApps'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path(r'board/<slug:slug>/', BoardController.getBoardFromSlug),
-    path(r'board/<slug:boardSlug>/vizentity/<str:title>', BoardController.getBoardVizElementFromSlug),
+    path(r'board/<slug:boardSlug>/vizentity/<slug:vizSlug>', BoardController.getBoardVizElementFromSlug),
 ]
 
 bokeh_apps = [
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getApp),
-    autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<title>[-a-zA-Z0-9_]+)", VizService.getApp),
+    autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),
 ]
 
 urlpatterns += staticfiles_urlpatterns()

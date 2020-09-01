@@ -30,9 +30,7 @@ class TraceEntity(models.Model):
         return self.name
 
     def getConnector(self):
-
         connector = ConnectorInterface.get(self.dataConnectorParam)
-
         return connector
 
     def loadData(self):

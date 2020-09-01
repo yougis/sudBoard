@@ -8,27 +8,42 @@ from vizApps.domain.Viz import VizEntity
 
 
 def getBoardFromSlug(request, slug):
+
+    # on récupère l'url de l'application du Board du serveur Bokeh
     bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + 'board/' +  slug
 
+    # on cherche l'identifiant de l'objet BoardEntity à partir du Slug
     board = BoardEntity.objects.get(slug=slug)
     headers = request.headers
     headers = dict(headers) if headers else {}
+
+    # on ajoute dans le header l'id du board (il sera utiliser par la suite dans le service de création du document Bokeh)
     headers['board-id'] = board.id
 
+    # génération du script
     server_script = server_session(None, session_id=token.generate_session_id(), url=bokeh_server_url,
                                    headers=headers)
 
+    # On regarde si on est en mode edit
+    edit = request.GET.get('edit')
+
+
+    # Création du context pour le template Jinja
     context = {
                "script": server_script,
                "vizName": board.name,
                }
+    template = None
+    if (edit=='True'):
+        template = render(request, 'board/board_edit.html', context)
+    else:
+        template = render(request, 'board/board_view.html', context)
+    return template
 
-    return render(request, 'board/projet_edition.html', context)
+def getBoardVizElementFromSlug(request, boardSlug, vizSlug):
+    bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + 'board/' +  boardSlug + '/vizentity/' +  vizSlug
 
-def getBoardVizElementFromSlug(request, boardSlug, title):
-    bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + 'board/' +  boardSlug + '/vizentity/' +  title
-
-    vizElement = VizEntity.objects.get(title=title)
+    vizElement = VizEntity.objects.get(slug=vizSlug)
     headers = request.headers
     headers = dict(headers) if headers else {}
     headers['viz-element-id'] = vizElement.id
@@ -39,6 +54,6 @@ def getBoardVizElementFromSlug(request, boardSlug, title):
         "script": server_script,
         "vizName": vizElement.title,
     }
-    return render(request, 'board/projet_edition.html', context)
+    return render(request, 'board/board_edit.html', context)
 
 

@@ -54,6 +54,10 @@ class BaseVizConstructor(param.Parameterized):
     def view(self):
         return self.getView()
 
+    def setOption(self, option):
+        options= hv.Options(option)
+        return self.opts(options)
+
 class BarGraphConstructor(BaseVizConstructor):
 
     def __init__(self, **params):
@@ -65,7 +69,7 @@ class BarGraphConstructor(BaseVizConstructor):
         return self.overlays
 
     def createViz(self,data):
-        #data = pd.DataFrame(data)
+        data = pd.DataFrame(data)
         return data.hvplot.table(['numero'])
 
 

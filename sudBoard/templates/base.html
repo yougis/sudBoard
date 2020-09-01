@@ -1,10 +1,32 @@
+{% load sekizai_tags %}
+
+{% block html %}
 <!DOCTYPE html>
+{% endblock html %}
 <html>
   <head>
-    <title>SudBoard</title>
+    {% block meta %}
+    <meta charset="utf-8" >
+    <meta name="description" content="{% block meta_description %}{% endblock meta_description %}">
+    <title>{% block title %}SudBoard{% endblock title %}</title>
+    {% endblock meta %}
+    {% block head_css %}
+    {% endblock head_css %}
+    {% block head_js %}
+    {% endblock head_js %}
   </head>
-  <body>
-  {% block content %}
-  {% endblock %}
+  <div id="sidebar">
+        {% block sidebar %}
+        {% endblock %}
+  </div>
+  <body id="{% block body_id %}{% endblock body_id %}" class="{% block body_class %}{% endblock body_class %}">
+  {% block  body_content %}
+  {% endblock body_content %}
+  {% block footer %}
+		{% include "footer.html" %}
+  {% endblock footer %}
+
+  {% block body_js %}
+  {% endblock body_js %}
   </body>
 </html>

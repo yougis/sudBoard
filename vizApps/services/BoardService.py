@@ -18,7 +18,6 @@ def getApp(doc):
     # recherche de l'entité Viz contenant les informations permettant de construire dynamiquement le panel
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     board = getBoard(doc.session_context.request.headers["board-id"])
-    bokehSessionId = doc.session_context.request.headers['bokeh-session-id']
 
     traceListe = TraceEntity.objects.filter(board=board)
 
@@ -60,3 +59,6 @@ def createVizAppElement(trace, vizEntity, initSession):
     VizAppElement.connectTraceToViz(trace)
 
     return VizAppElement
+
+def saveApp():
+    return "ok"
