@@ -2,4 +2,14 @@
 
 {% block sidebar %}
 		{% include "studio/menu.html" %}
+{% block action %}
+Form actions
+
+<form action="{% block action_name %}{% endblock %}" method="post">
+    {% csrf_token %}
+    {% block action_input %}
+    {% endblock %}
+</form>
+{% endblock %}
+
 {% endblock %}

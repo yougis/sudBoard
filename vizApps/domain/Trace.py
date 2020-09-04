@@ -26,6 +26,7 @@ class TraceEntity(models.Model):
     isGeo = False
     labelGeom=None
 
+
     def __str__(self):
         return self.name
 

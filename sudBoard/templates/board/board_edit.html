@@ -1,7 +1,20 @@
 {% extends "studio/studio.html" %}
 
-
   {% block body_content %}
-  <h1>{{vizName}}</h1>
+  <h1>{{boardName}}</h1>
+
     {{ script|safe }}
   {% endblock %}
+{% block action_name %}
+
+"{% url 'board' boardSlug  %}?edit=True"
+{% endblock %}
+{{ board }}
+    {% block action_input %}
+
+    <button type="submit" value="save">Enregistrer</button>
+
+
+    {% endblock %}
+
+

@@ -13,8 +13,7 @@ class VizEntity(models.Model):
     title = models.CharField(max_length=30)
     slug = models.SlugField(max_length=50, unique=True)
     parameters = JSONField(blank=True)
-
-    viz=None
+    _viz = {'vizApp':None}
 
     type = models.CharField(
         max_length=15,
@@ -34,14 +33,8 @@ class VizEntity(models.Model):
 
 
     def save(self, *args, **kwargs):
-        #try:
-        #    self.viz = kwargs['viz']
-        #except:
-        #    ''
-        #if(self.viz):
-        viz=ChoroplethMapConstructor(id="1")
         excludeKey = {"name"}  # on ne peut pas modifier le nom d'une viz
-        dicParam = ParamsUtils.recursiveParamToJsonDict(self, parameters=viz.param.get_param_values())
+        dicParam = ParamsUtils.recursiveParamToJsonDict(self, parameters=self.getVizParam.param.get_param_values())
         parameters = DicoUtils.excludingkeys(self, (dicParam), excludeKey)
         self.parameters = json.dumps(parameters)
         super().save(*args, **kwargs)
@@ -68,3 +61,8 @@ class VizEntity(models.Model):
 
     def getVizById(self, id):
         return VizConstructor.get(id)
+
+    @property
+    def getVizParam(self):
+        return self._viz["vizApp"]
+

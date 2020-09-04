@@ -6,15 +6,24 @@ import vizApps.services.VizConstructorService as VizConstructor
 
 import os
 
-class bokehSession():
-    def __init__(self, **params):
-        self.id = params['id']
-        self.initial = True
-
 
 sessionsInstances=[]
 
 def getApp(doc):
+    vizAppList = getVizAppList(doc)
+    row = pn.Row()
+    for vizAppElement in vizAppList:
+        row.append(vizAppElement.view)
+    row.server_doc(doc)
+
+def getAppEditMode(doc):
+    vizAppList = getVizAppList(doc)
+    row = pn.Row()
+    for vizAppElement in vizAppList:
+        row.append(pn.Row(vizAppElement.view,pn.Tabs(("Parametres", vizAppElement))))
+    row.server_doc(doc)
+
+def getVizAppList(doc):
     # recherche de l'entité Viz contenant les informations permettant de construire dynamiquement le panel
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     board = getBoard(doc.session_context.request.headers["board-id"])
@@ -26,28 +35,19 @@ def getApp(doc):
     initSession = True
 
     for trace in traceListe:
-        #on regroupe les traces qui vont sur le meme VizElement ensemble
+        # on regroupe les traces qui vont sur le meme VizElement ensemble
         vizListe = trace.vizListe.all()
 
         for viz in vizListe:
-            vizApp = createVizAppElement(trace=trace, vizEntity=viz,initSession=initSession)
-
-            if vizApp in vizAppList:
+            vizAppElement = createVizAppElement(trace=trace, vizEntity=viz, initSession=initSession)
+            viz._viz['vizApp'] = vizAppElement
+            if vizAppElement in vizAppList:
                 break
             else:
-                vizAppList.append(vizApp)
-
+                vizAppList.append(vizAppElement)
             initSession = False
-
-    # On clean les instances utilisées créés au cours de la construction
     VizConstructor.vizInstancesList.clear()
-    row = pn.Row()
-
-    for vizElement in vizAppList:
-        row.append(pn.Tabs((str(vizElement.id),vizElement.view()),("parametres",vizElement)))
-
-
-    row.server_doc(doc)
+    return vizAppList
 
 def getBoard(id):
     board = BoardEntity.objects.get(id=id)
@@ -60,5 +60,5 @@ def createVizAppElement(trace, vizEntity, initSession):
 
     return VizAppElement
 
-def saveApp():
+def save():
     return "ok"

@@ -19,18 +19,22 @@ from django.urls import path,re_path
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from vizApps.services import BoardService, VizService
 
-from vizApps.controllers import BoardController
+from vizApps.controllers.BoardController import BoardController
 
 app_name = 'vizApps'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path(r'board/<slug:slug>/', BoardController.getBoardFromSlug),
-    path(r'board/<slug:boardSlug>/vizentity/<slug:vizSlug>', BoardController.getBoardVizElementFromSlug),
+    path(r'board/', BoardController.boardList),
+    path(r'board/new', BoardController.create),
+    path(r'board/<slug:slug>/', BoardController.routeAction, name= 'board'), #[DELETE:delete, GET:search, POST:update, PUT:update]
+    path(r'board/<slug:boardSlug>/vizentity/<slug:vizSlug>', BoardController.getBoardVizElementFromSlug), #[DELETE:delete, GET:search, POST:update, PUT:update]
+
 ]
 
 bokeh_apps = [
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getApp),
+    autoload(f"^studio/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppEditMode),
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),
 ]
 
