@@ -20,7 +20,7 @@ maillage = ["ISEE","Commune","Province"]
 
 vizInstancesList = []
 
-def getVizInstancesById(id):
+def getVizAppInstancesById(id):
     instance = [inst for inst in vizInstancesList if inst.id == id]
     if len(instance)>=1:
         return instance[0]  # on renvoit uniquement un objet
@@ -62,7 +62,7 @@ class BarGraphConstructor(BaseVizConstructor):
 
     def __init__(self, **params):
         self.type = TypeVizEnum.BAR_GRAPH
-        vizInstancesList.append(self)
+        #vizInstancesList.append(self)
         super(BarGraphConstructor, self).__init__(**params)
 
     def getView(self):
@@ -93,7 +93,7 @@ class ChoroplethMapConstructor(MapConstructor):
 
     def __init__(self, **params):
         self.type = TypeVizEnum.CHOROPLETH_MAP
-        vizInstancesList.append(self)
+        #vizInstancesList.append(self)
         super(ChoroplethMapConstructor, self).__init__(**params)
 
     def getView(self):

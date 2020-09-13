@@ -11,9 +11,16 @@ class BoardAdmin(admin.ModelAdmin):
 
 admin.site.register(BoardEntity, BoardAdmin)
 
+
+
 class VizEntityAdmin(admin.ModelAdmin):
     list_display = ('title', 'slug')
     prepopulated_fields = {'slug': ('title',)}
+    def save_model(self, request, obj, form, change):
+        #VizEntity.objects.addVizAppInstance(obj.createVizAppFromJsonParameters(initSession=True))
+       #if (obj._viz['vizApp'] == None):
+       #    obj._viz['vizApp'] = obj.createVizFromJsonParameters(initSession=True)
+        super().save_model(request, obj, form, change)
 
 admin.site.register(VizEntity, VizEntityAdmin)
 

@@ -40,7 +40,7 @@ def getVizAppList(doc):
 
         for viz in vizListe:
             vizAppElement = createVizAppElement(trace=trace, vizEntity=viz, initSession=initSession)
-            viz._viz['vizApp'] = vizAppElement
+            viz._vizApp['vizApp'] = vizAppElement
             if vizAppElement in vizAppList:
                 break
             else:
@@ -54,8 +54,8 @@ def getBoard(id):
     return board
 
 def createVizAppElement(trace, vizEntity, initSession):
-    VizAppElement = vizEntity.createVizFromJsonParameters(initSession)
-
+    #VizAppElement = vizEntity.createVizAppFromJsonParameters(initSession)
+    VizAppElement = vizEntity.getVizApp
     VizAppElement.connectTraceToViz(trace)
 
     return VizAppElement
