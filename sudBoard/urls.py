@@ -15,9 +15,10 @@ Including another URLconf
 """
 from bokeh.server.django import autoload
 from django.contrib import admin
-from django.urls import path,re_path
+from django.urls import path
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
-from vizApps.services import BoardService, VizService
+from vizApps.services.board import BoardService
+from vizApps.services.viz import VizService
 
 from vizApps.controllers.BoardController import BoardController
 

@@ -8,7 +8,6 @@ def getApp(doc):
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     baseVizElement = getBaseVizElement(doc.session_context.request.headers["viz-element-id"])
     init = True
-    #viz = baseVizElement.createVizAppFromJsonParameters(init)
     viz = baseVizElement._vizApp
     gspec = pn.GridSpec(sizing_mode='stretch_both', max_height=800)
 

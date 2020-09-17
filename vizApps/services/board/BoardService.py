@@ -2,12 +2,10 @@ import panel as pn
 
 from vizApps.domain.Board import BoardEntity
 from vizApps.domain.Trace import TraceEntity
-import vizApps.services.VizConstructorService as VizConstructor
+import vizApps.services.viz.VizInstanceService as VizConstructor
 
 import os
 
-
-sessionsInstances=[]
 
 def getApp(doc):
     vizAppList = getVizAppList(doc)
@@ -27,38 +25,34 @@ def getVizAppList(doc):
     # recherche de l'entité Viz contenant les informations permettant de construire dynamiquement le panel
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
     board = getBoard(doc.session_context.request.headers["board-id"])
+    session = doc.session_context.request.headers['bokeh-session-id']
 
     traceListe = TraceEntity.objects.filter(board=board)
 
     vizAppList = []
-
-    initSession = True
 
     for trace in traceListe:
         # on regroupe les traces qui vont sur le meme VizElement ensemble
         vizListe = trace.vizListe.all()
 
         for viz in vizListe:
-            vizAppElement = createVizAppElement(trace=trace, vizEntity=viz, initSession=initSession)
-            viz._vizApp['vizApp'] = vizAppElement
+            vizAppElement = createVizAppElement(trace=trace, vizEntity=viz, session=session)
+            vizAppElement._session = session
             if vizAppElement in vizAppList:
                 break
             else:
                 vizAppList.append(vizAppElement)
-            initSession = False
-    VizConstructor.vizInstancesList.clear()
     return vizAppList
 
 def getBoard(id):
     board = BoardEntity.objects.get(id=id)
     return board
 
-def createVizAppElement(trace, vizEntity, initSession):
-    #VizAppElement = vizEntity.createVizAppFromJsonParameters(initSession)
-    VizAppElement = vizEntity.getVizApp
-    VizAppElement.connectTraceToViz(trace)
-
-    return VizAppElement
+def createVizAppElement(trace, vizEntity, session):
+    vizAppElement = vizEntity.getVizApp
+    vizAppElement.connectTraceToViz(trace)
+    VizConstructor.setVizAppInstancesSessionfromId(id(vizAppElement), session)
+    return vizAppElement
 
 def save():
     return "ok"

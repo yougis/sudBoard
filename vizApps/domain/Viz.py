@@ -2,10 +2,12 @@ from django.contrib.postgres.fields import JSONField
 import json
 from django.db import models
 from vizApps.Utils.Utils import DicoUtils, ParamsUtils
-from vizApps.services.VizConstructorService import ChoroplethMapConstructor, BarGraphConstructor
+from vizApps.services.viz.choroplethMapAppService import ChoroplethMapAppService
+from vizApps.services.viz.barGraphAppService import BarGraphApp
+
 from vizApps.domain.TypeVizEnum import TypeVizEnum
 
-import vizApps.services.VizConstructorService as VizConstructor
+import vizApps.services.viz.VizInstanceService as VizConstructor
 
 
 class VizManager(models.Manager):
@@ -14,6 +16,7 @@ class VizManager(models.Manager):
         viz = cls.create(_viz=viz)
         return viz
 
+    @classmethod
     def from_db(*args, **kwargs):  # cls, db, field_names, values
         args
         super().from_db(*args, **kwargs)
@@ -25,7 +28,7 @@ class VizManager(models.Manager):
 
 
 class VizEntity(models.Model):
-    session = None
+
     title = models.CharField(max_length=30)
     slug = models.SlugField(max_length=50, unique=True)
     parameters = JSONField(null=True)
@@ -39,16 +42,19 @@ class VizEntity(models.Model):
 
     def __init__(self, *args, **kwargs):
         super(VizEntity, self).__init__(*args, **kwargs)
-        self._vizApp = self.createVizAppFromJsonParameters(True)
+        self._vizApp = self.createVizAppFromJsonParameters(initSession=True)
 
     def __str__(self):
         return self.title + ' - ' + self.type
 
+    def updateVizApp(self,vizApp):
+        self._vizApp = {'vizApp': vizApp}
+
 
     def dicWrapper(self, typeViz):
         switcher = {
-            TypeVizEnum.CHOROPLETH_MAP.name: ChoroplethMapConstructor(id=self.id),
-            TypeVizEnum.BAR_GRAPH.name: BarGraphConstructor(id=self.id)
+            TypeVizEnum.CHOROPLETH_MAP.name: ChoroplethMapAppService(viz_instance=self),
+            TypeVizEnum.BAR_GRAPH.name: BarGraphApp(viz_instance=self)
         }
         return switcher.get(typeViz, None)
 
@@ -64,9 +70,8 @@ class VizEntity(models.Model):
 
     def createVizAppFromJsonParameters(self, initSession):
         # On cherche si l'instance de la viz existe déjà dans la session
-        vizApp = VizConstructor.getVizAppInstancesById(self.id)
+        vizApp = VizConstructor.getVizAppInstancesById(id(self))
         if (vizApp and initSession == False):
-            #self._vizApp(vizApp=vizApp)
             print(vizApp, ' ', id(vizApp))
             return {'vizApp': vizApp}
         else:
@@ -79,14 +84,9 @@ class VizEntity(models.Model):
             for p in result_dict:
                 vizApp.param.set_param(p[0], p[1])
                 # typeViz est maintenant une instance Viz parmétrée
-
-        #self._vizApp["vizApp"] = vizApp
-
+        VizConstructor.vizInstancesList.append(vizApp)
         print(vizApp, ' ', id(vizApp))
         return  {'vizApp': vizApp}
-
-    def getVizById(self, id):
-        return VizConstructor.get(id)
 
     @property
     def getVizApp(self):

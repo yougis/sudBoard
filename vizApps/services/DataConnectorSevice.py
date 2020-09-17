@@ -28,10 +28,10 @@ crsRgnc = ccrs.LambertConformal(central_longitude=166,
                                 cutoff=0,
                                 globe=ccrs.Globe(ellipse='GRS80'))
 
-epsg3163 = pyepsg.get(3163)
-proj4jRGNC = epsg3163.as_proj4().strip()
-bound =  epsg3163.domain_of_validity()
-proj4CRS = CRS.from_proj4(proj4jRGNC)
+#epsg3163 = pyepsg.get(3163)
+#proj4jRGNC = epsg3163.as_proj4().strip()
+#bound =  epsg3163.domain_of_validity()
+#proj4CRS = CRS.from_proj4(proj4jRGNC)
 
 class ConnectorInterface():
     instances = []
