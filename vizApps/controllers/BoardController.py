@@ -1,6 +1,7 @@
 # Create your views here.
 from bokeh.embed import server_session
 from bokeh.util import token
+from django.http import HttpResponse
 from django.shortcuts import render
 from vizApps.domain.Board import BoardEntity
 from vizApps.domain.Viz import VizEntity
@@ -103,6 +104,10 @@ class BoardController():
         response = render(request, 'board/board_edit.html', context)
         response.set_cookie('session_id',session_id)
         return response
+
+    def cleanCache(self):
+        response = BoardService.clearCache()
+        return HttpResponse(response)
 
     def boardList(request):
         pass

@@ -93,9 +93,18 @@ DATABASES = {
         'PASSWORD': 'sudboard',
         'HOST': 'localhost',
 
-        },
+        }
 }
 
+EXTERNE_DATABASES = {
+    'ref': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'ref',
+        'USER': 'ref',
+        'PASSWORD': 'ref',
+        'HOST': 'pgsql1-qualif.province-sud.qualif',
+        }
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/3.0/ref/settings/#auth-password-validators

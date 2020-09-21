@@ -18,7 +18,6 @@ class JossoSession():
     jossoEndpoint = '/josso/signon/login.do'
 
     cookies = {}
-
     headers = {}
     headers['User-Agent'] = 'SudBoard'
     headers['Content-Type'] = 'application/json'
@@ -51,9 +50,6 @@ class JossoSession():
             self.cookies.update([(josso_sessionId.split('=')[0], josso_sessionId.split('=')[1])])
             self.cookies.update([(jsessionId.split('=')[0], jsessionId.split('=')[1])])
             self.cookies.update([('usernameLoginJOSSO', self.login)])
-        return
 
     def connectJosso(self):
-
-
-        return
+        pass

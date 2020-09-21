@@ -26,6 +26,7 @@ app_name = 'vizApps'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('board/clean_cache/', BoardController.cleanCache),
     path(r'board/', BoardController.boardList),
     path(r'board/new', BoardController.create),
     path(r'board/<slug:slug>/', BoardController.routeAction, name= 'board'), #[DELETE:delete, GET:search, POST:update, PUT:update]

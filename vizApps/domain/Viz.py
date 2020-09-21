@@ -1,7 +1,7 @@
 from django.contrib.postgres.fields import JSONField
 import json
 from django.db import models
-from vizApps.Utils.Utils import DicoUtils, ParamsUtils
+from vizApps.Utils.utils import DicoUtils, ParamsUtils
 from vizApps.services.viz.choroplethMapAppService import ChoroplethMapAppService
 from vizApps.services.viz.barGraphAppService import BarGraphApp
 

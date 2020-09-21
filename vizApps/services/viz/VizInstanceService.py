@@ -2,6 +2,10 @@
 vizInstancesList = []
 vizInstancesSessionsList=[()]
 
+def clearInstances():
+    vizInstancesList.clear()
+    vizInstancesSessionsList.clear()
+
 def getVizAppInstancesById(ident):
     instance = [inst for inst in vizInstancesList if id(inst) == ident]
     if len(instance)>=1:

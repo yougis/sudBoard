@@ -1,11 +1,12 @@
 import param
 import holoviews as hv
 import hvplot.pandas
+from holoviews import  Overlay
 
 class BaseVizApp(param.Parameterized):
 
     def __init__(self, **params):
-        self.overlays = None
+        self.overlays = Overlay()
         self.data = None
         self.id = params["viz_instance"].id
         self.dictParameters = self.get_param_values()
@@ -17,7 +18,7 @@ class BaseVizApp(param.Parameterized):
     def connectTraceToViz(self,trace):
         trace.loadData()
         data = trace.data
-        overlay = self.createViz(data=data)
+        overlay = self.createVizData(data=data)
         self.addOverlay(overlay)
 
     def addOverlay(self,trace):
@@ -35,6 +36,6 @@ class BaseVizApp(param.Parameterized):
         options= hv.Options(option)
         return self.opts(options)
 
-    def createViz(self,**kwargs):
+    def createVizData(self,**kwargs):
         data = kwargs["data"]
         return data.hvplot()

@@ -1,17 +1,17 @@
 from django.contrib.postgres.fields import JSONField
 from django.db import models
 from vizApps.services.DataConnectorSevice import ConnectorInterface
+from vizApps.Utils.geomUtils import GeomUtil
 from vizApps.domain.Board import BoardEntity
 from vizApps.domain.Viz import  VizEntity
 from numpy import random
+from vizApps.services.dataSource.dataFrameProfile import  DataFrameProfile
 
 dic = {'Commune':'/ref/dittt/CommuneNC', 'Adresse':'/ref/serail/Adresse'}
 
 datasourceListe =[]
 for key in dic:
     datasourceListe.append(key)
-
-maillage = ["ISEE","Commune","Province"]
 
 class DataCatalogue(models.Model):
     name = models.CharField(max_length=30)
@@ -37,10 +37,17 @@ class TraceEntity(models.Model):
     def loadData(self):
         dataConnector = self.getConnector()
         self.data = dataConnector.getData()
-        if (dataConnector.getIsGeo(self.data)):
+        if (GeomUtil.getIsGeo(self, dataframe=self.data)):
             self.isGeo = True
-            self.labelGeom = dataConnector.getLabelGeom(self.data)
+            self.labelGeom = GeomUtil.getLabelGeom(self,dataframe=self.data)
 
+    def dataProfileApp(self):
+        data = self.data
+        if self.isGeo:
+            data = GeomUtil.transformGdfToDf(self,dataframe=data)
+        profileApp = DataFrameProfile(data)
+        profileApp.makeProfile()
+        return profileApp.profile
 
     #### CRUD METHOD ###
 

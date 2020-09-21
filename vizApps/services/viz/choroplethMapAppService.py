@@ -5,7 +5,7 @@ import hvplot.pandas
 from cartopy import crs
 import geoviews as gv
 
-fondecarte = gv.tile_sources.Wikipedia
+
 
 maillage = ["ISEE","Commune","Province"]
 
@@ -21,14 +21,11 @@ class ChoroplethMapAppService(BaseMapApp):
 
     def getView(self):
         # customize defaut options
-        self.overlays = self.overlays.opts(active_tools=['pan', 'wheel_zoom'])
+        return super().getView()
 
-        return self.overlays
-
-    def createViz(self,**kwargs):
+    def createVizData(self,**kwargs):
         self.data = kwargs["data"]
-        points = fondecarte * gv.Points(self.data, crs=crs.GOOGLE_MERCATOR)
+        points = gv.Points(self.data, crs=crs.GOOGLE_MERCATOR)
         polygons =  gv.Polygons(self.data)
-
         return points
 
