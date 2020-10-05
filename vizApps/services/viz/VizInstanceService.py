@@ -24,3 +24,9 @@ def setVizAppInstancesSessionfromId(id, session):
         vizInstancesSessionsList.append((id, session))
     return None
 
+def getVizByTraceIdAndSessionId(self, traceId, sessionId):
+    instancesSession = getVizAppInstancesBySessionId(sessionId)
+    instances = [inst for inst in instancesSession if inst.trace.id == traceId]
+    if len(instances)>=1:
+        return instances
+    return None

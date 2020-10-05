@@ -23,7 +23,7 @@ class ChoroplethMapAppService(BaseMapApp):
         # customize defaut options
         return super().getView()
 
-    def createVizData(self,**kwargs):
+    def createOverlay(self,**kwargs):
         self.data = kwargs["data"]
         points = gv.Points(self.data, crs=crs.GOOGLE_MERCATOR)
         polygons =  gv.Polygons(self.data)

@@ -11,7 +11,7 @@ def getApp(doc):
     viz = baseVizElement._vizApp
     gspec = pn.GridSpec(sizing_mode='stretch_both', max_height=800)
 
-    gspec[0, :3] = pn.Row(pn.Row(viz.param, parameters=['update']),viz.getView)
+    gspec[0, :3] = pn.Row(pn.Row(viz.param, parameters=['update']),viz.view)
     gspec[1, :3] = pn.Row(viz.viewDataFrame)
 
 

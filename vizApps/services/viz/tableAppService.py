@@ -6,12 +6,12 @@ import hvplot.pandas
 class TableApp(BaseVizApp):
 
     def __init__(self, **params):
-        self.type = TypeVizEnum.BAR_GRAPH
+        self.type = TypeVizEnum.TABLE
         super(TableApp, self).__init__(**params)
 
     def getView(self):
         return self.overlays
 
-    def createVizData(self, **kwargs):
+    def createOverlay(self, **kwargs):
         data = pd.DataFrame( kwargs.get("data"))
         return data.hvplot.table()

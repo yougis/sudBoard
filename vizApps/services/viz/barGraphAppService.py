@@ -12,9 +12,9 @@ class BarGraphApp(BaseVizApp):
     def getView(self):
         return self.overlays
 
-    def createVizData(self, **kwargs):
+    def createOverlay(self, **kwargs):
         data = pd.DataFrame(kwargs.get("data"))
-        dimension = kwargs.get("dim")
+        dimension = kwargs.get("dim") if kwargs.get("dim") else []
         groupby= kwargs.get("groupby")
 
         return data.hvplot.hist(dimension=dimension,groupby=groupby)

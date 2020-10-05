@@ -11,14 +11,24 @@ from sudBoard.settings import EXTERNE_DATABASES
 
 from vizApps.services.JossoSessionService import JossoSession
 
-LIMIT_PARAM = 100
+# limit de nombre d'objet par requete
+LIMIT_PARAM = 1000
+
+FULL = "FULL"
+SAMPLE = "SAMPLE"
 
 class ConnectorInterface():
     instances = []
 
     def __init__(self, json):
         self.id = json["connector-id"]
-        self.data = None
+        self.data = pd.DataFrame()
+        self.sample_data = pd.DataFrame()
+        self.full_data = pd.DataFrame()
+        self.sample_or_full_from_cache = None #SAMPLE or FULL
+        self.sample = False
+        self.no_cache = False
+        self.caching_in_progress = False
         ConnectorInterface.instances.append(self)
         if (json["connector"] == "RestApi"):
             self.connector = PsudRestApi(json['url'], json['extraParams'])
@@ -33,100 +43,184 @@ class ConnectorInterface():
             return instance[0]  # on renvoit uniquement un objet
         return ConnectorInterface(jsonParams)
 
-    def getData(self, force=False):
-        if force == True:
-            self.data = self.connector.getData()
-
-        if isinstance(self.data, pd.DataFrame) or isinstance(self.data, gpd.GeoDataFrame):
-            if self.data.empty:
-                self.data = self.connector.getData()
-            else:
-                return self.data
-
-        if self.data != None:
-            return self.data
+    def isDataInCache(self):
+        if self.sample_or_full_from_cache == SAMPLE and not self.sample_data.empty:
+            return True
+        elif self.sample_or_full_from_cache == FULL and not self.full_data.empty:
+            return True
         else:
-            self.data = self.connector.getData()
+            return False
 
-        if GeomUtil.getIsGeo(self,dataframe=self.data):
-            self.data = GeomUtil.transformToGeoDf(self,dataframe=self.data)
+    def lookCachedData(self):
+        if self.isDataInCache():
+             self.data = self.returnSampleOrFullData()
+             return self.data
+        else:
+            print('Pas de données {} en cache pour le type de demande'.format(self.askFromCacheOrNot))
+            return None
+
+    def returnSampleOrFullData(self):
+        data = {
+            SAMPLE: self.sample_data,
+            FULL : self.full_data
+        }
+        return data.get(self.sample_or_full_from_cache)
+
+    def getData(self):
+        data = self.connector.getData(self.sample)
+
+        if not isinstance(data, gpd.GeoDataFrame):
+            if (GeomUtil.getIsGeo(self, dataframe=data)):
+                data = GeomUtil.transformToGeoDf(self,dataframe=data)
+
+        self.setData(data)
 
         return self.data
 
-    def refreshData(self):
-        return self.getData(self, force=True)
+    def setData(self, data):
+        if self.sample_or_full_from_cache == SAMPLE and self.sample:
+            self.sample_data = data
+            self.data = self.sample_data
+        elif self.sample_or_full_from_cache == FULL and not self.sample:
+            self.full_data = data
+            self.data = self.full_data
+
+    def toSampleOnly(self):
+        self.sample_or_full_from_cache = SAMPLE
+        self.sample = True
+
+    def toFullData(self):
+        self.sample_or_full_from_cache = FULL
+        self.sample = False
+
+    def disconnect(self):
+        self.connector.disconnect()
+        self.caching_in_progress = False
 
 
 class PsudRestApi():
     baseUrl = BASE_URL.__getitem__(1)[1]
     endPointUrl = ""
-    extraParams = ""
+    extraParams = {}
     jossoSession = JossoSession()
 
     def __init__(self, url, extraParams):
         self.jossoSession = JossoSession()
         self.endPointUrl = url
         self.extraParams = extraParams
+        self.totalNbEntity = 0
+        self.nbEntityLoaded = 0
+        self.nbRequest = 1
 
-    def getData(self):
+    def disconnect(self):
+        pass
+
+    def getData(self, sampleOnly):
+
         url = self.endPointUrl
         extraParams = self.extraParams
+        data = pd.DataFrame()
+
+        modulo = self.totalNbEntity % LIMIT_PARAM
+
         # on récupère les meta data à partir d'une seul entité
-        extraParams.append('limit=1')
-        result = requests.get(self.baseUrl + url + "?_responseMode=json&" + '&'.join(extraParams),
-                              cookies=self.jossoSession.cookies, headers=self.jossoSession.headers)
+        extraParams['limit']=10
+        result = self.makeRequest(url, extraParams)
+        while result.status_code == 503:
+            result = self.makeRequest(url, extraParams)
+            break
 
         if result.status_code == 200:
             jsonResult = json.loads(result.text)
-            nbEntity = jsonResult['total']
-            print(nbEntity)
+            self.totalNbEntity = jsonResult['total']
+            print(self.totalNbEntity)
+        elif result.status_code == 500:
+            dataFrame = pd.DataFrame(data={'0':["Data-Acces-Error"]})
+            return dataFrame
+        elif result.status_code == 503 :
+            return print('503 ERROR')
+
+        self.nbRequest = int((self.totalNbEntity - modulo) / LIMIT_PARAM)
+
+        if sampleOnly:
+            self.data = self.createDataframeFromJson(result)
+            # on supprime le parametre limit et en fonction du nombre total de donnée on va paginer nos requetes pour pas killer le serveur.
+            extraParams.pop('limit')
+            return self.data
+
+        if (self.totalNbEntity < LIMIT_PARAM):
+            result = self.makeRequest(url, extraParams)
+            data = self.createDataframeFromJson(result)
 
         else:
-            print("on a un problème Huston")
-            raise Exception('PsudRestApi Error', 'Data')
 
-        # on supprime le parametre limit et en fonction du nombre total de donnée on va paginer nos requetes pour pas killer le serveur.
-        extraParams.pop()
 
-        data = pd.DataFrame()
-        if (nbEntity < LIMIT_PARAM):
-            data = self.makeRequest(url, extraParams)
+            extraParams['limit'] = LIMIT_PARAM
 
-        else:
-            modulo = nbEntity % LIMIT_PARAM
-            nbOfRequest = int((nbEntity - modulo) / LIMIT_PARAM)
-            limitParam = 'limit=' + str(LIMIT_PARAM)
+            for i in range(0, self.totalNbEntity, LIMIT_PARAM):
+                extraParams['start'] = i
+                result = self.makeRequest(url, extraParams)
+                df = pd.DataFrame()
 
-            extraParams.append(limitParam)
+                while result.status_code == 503:
+                    result = self.makeRequest(url, extraParams)
+                    break
 
-            nbEntity = 10
-
-            for i in range(0, nbEntity, LIMIT_PARAM):
-                extraParams.append('start=' + str(i))
-                df = self.makeRequest(url, extraParams)
+                if result.status_code == 200:
+                    df = self.createDataframeFromJson(result)
+                elif result.status_code == 500:
+                    dataFrame = pd.DataFrame({'0':"data-Acces-Error"})
+                    return dataFrame
+                elif result.status_code == 503:
+                    print("Huston 503")
+                else:
+                    print("on a un problème Huston")
+                    raise Exception('PsudRestApi Error', 'Request status code: ', result.status_code)
 
                 if (data.size == 0):
                     data = df
                 else:
                     data = data.append(df)
-                print(data.head())
 
-                extraParams.pop()
+                self.nbEntityLoaded = data.shape[0]
+
+
+                extraParams.pop('start')
 
         self.data = data
         return self.data
 
     def makeRequest(self, url, extraParams):
-        result = requests.get(self.baseUrl + url + "?_responseMode=json&" + '&'.join(extraParams),
+        params = ""
+        for key, value in extraParams.items():
+            params += "&" + key + "=" + str(value)
+
+        result = requests.get(self.baseUrl + url + "?_responseMode=json" + params,
                               cookies=self.jossoSession.cookies, headers=self.jossoSession.headers)
+        return result
+
+    def createDataframeFromJson(self, result):
         jsonResult = json.loads(result.text)
         dataFrame = pd.json_normalize(jsonResult['data'])
         return dataFrame
 
-    def paginatedRequest(self, url, extraParams):
-        resultPage = self.makeRequest(url, extraParams)
-        return resultPage
+    def getSlicedData(self):
+        url = self.endPointUrl
+        extraParams = self.extraParams
+        data = pd.DataFrame()
 
+        result = self.makeRequest(url, extraParams)
+
+        while result.status_code == 503:
+            result = self.makeRequest(url, extraParams)
+            break
+
+        if result.status_code == 200:
+            data = self.createDataframeFromJson(result)
+
+        print(data.head())
+        print(extraParams)
+        return data
 
 class PsudGeoCat():
     def __init__(self):
@@ -142,6 +236,8 @@ class PsudDatabase():
                                                                         self.database.get('NAME')))
         self.table = table
         self.whereClause = whereClause
+        self.conn = None
+
 
     def getData(self):
         # self.conn = psycopg2.connect(host=self.database.get('HOST'),
@@ -152,6 +248,10 @@ class PsudDatabase():
         dataframe = pd.read_sql_query("SELECT * from {} {}".format(self.table, self.whereClause), con=self.engine)
 
         return dataframe
+
+    def disconnect(self):
+        self.closeConnection()
+        pass
 
     def closeConnection(self):
         if self.conn is not None:
