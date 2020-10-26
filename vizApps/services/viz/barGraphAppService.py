@@ -1,9 +1,13 @@
 from vizApps.services.viz.baseVizAppService import BaseVizApp
 from vizApps.domain.TypeVizEnum import TypeVizEnum
+import holoviews as hv
 import pandas as pd
 import hvplot.pandas
+import param
 
 class BarGraphApp(BaseVizApp):
+        # discrete, numerical comparisons across categories.
+    # http://holoviews.org/reference/elements/bokeh/Bars.html#elements-bokeh-gallery-bars
 
     def __init__(self, **params):
         self.type = TypeVizEnum.BAR_GRAPH
@@ -13,8 +17,12 @@ class BarGraphApp(BaseVizApp):
         return self.overlays
 
     def createOverlay(self, **kwargs):
-        data = pd.DataFrame(kwargs.get("data"))
-        dimension = kwargs.get("dim") if kwargs.get("dim") else []
+        traceP= kwargs["traceParam"]
+        data = traceP.data
+        vdims = traceP.listeEntier
+        if len(vdims) == 1:
+            vdims.append(vdims[0])
+        #absice = kwargs.get("absice")
         groupby= kwargs.get("groupby")
 
-        return data.hvplot.hist(dimension=dimension,groupby=groupby)
+        return data.hvplot.bar()# * hv.Histogram(data)# * hv.Bars(data)

@@ -28,6 +28,7 @@ class ProgressExtMod(param.Parameterized):
             pn.viewable.Viewable: Add this to your app to see the progress reported
         """
         if self.value:
+            #return pn.Row(pn.pane.HTML(str(self.value)) ,pn.widgets.Progress())
             return pn.widgets.Progress(active=True, value=self.value, align="center", sizing_mode="stretch_width", height=5)
         return None
 

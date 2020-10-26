@@ -1,11 +1,13 @@
 from vizApps.services.viz.baseMapAppService import BaseMapApp
-import param
+import param, panel as pn
+
 from vizApps.domain.TypeVizEnum import TypeVizEnum
 import hvplot.pandas
 from cartopy import crs
 import holoviews as hv
 import geoviews as gv
 from geoviews import dim
+
 
 POINT = ['Point','point[int64]','multipoint[int64]']
 POLYGONE = ['Polygon','MultiPolygon', 'polygon[int64]','multipolygon[int64]']
@@ -16,29 +18,53 @@ LINESTRING = ['LineString','MultiLineString','MultiLine','line[int64]','multilin
 STRONG_SIMPLIFY = 500.0
 SOFT_SIMPLIFY = 50.0
 
-maillage = ["ISEE","Commune","Province"]
 
-class ChoroplethMapAppService(BaseMapApp):
+class ProportionalPointMapAppService(BaseMapApp):
+    variable_taille_point = param.Selector()
 
-    maillageChoice = param.ObjectSelector(default=maillage[0], objects=maillage)
-    selector = param.Selector(objects=["red", "yellow", "green"])
-    num = param.Number()
+
 
     def __init__(self, **params):
-        self.type = TypeVizEnum.CHOROPLETH_MAP
-        super(ChoroplethMapAppService, self).__init__(**params)
+        self.type = TypeVizEnum.POINT_MAP
+        self._listeEntier = []
+
+        super(ProportionalPointMapAppService, self).__init__(**params)
+
+
+    def getConfigTracePanel(self):
+        self.configTracePanel = pn.Column(self.param.variable_taille_point)
+        return super().getConfigTracePanel()
+
+    def getVizConfig(self):
+        self.configVizPanel.append()
+        return super().getConfigVizPanel()
 
     def getView(self):
         # customize defaut options
         return super().getView()
 
+    @param.depends('variable_taille_point', watch=True)
+    def changePointSize(self):
+        pass
+        #self.param.variable_taille_point.objects = self._listeEntier
+       #if self.tracePContext:
+       #    self.tracePContext = None
+       #    self.doRefreshByTraceParam(self.tracePContext)
+
     def createOverlay(self,**kwargs):
+
         traceP = kwargs.get("traceParam")
         data = traceP.data
         label  = kwargs.get("label")
-        vdims = traceP.listeEntier
-        size = 1 if not traceP.listeEntier else traceP.listeEntier[0]
+        self._listeEntier = traceP.listeEntier
+        self.param.variable_taille_point.objects = self._listeEntier
 
+        if not self.variable_taille_point:
+            self.variable_taille_point = self._listeEntier[0]
+
+        self.tracePContext=traceP
+        vdims = traceP.listeEntier
+        size = self.variable_taille_point
         ndOverlays= []
 
         arrayGeomType = data.geom_type.unique()

@@ -1,4 +1,4 @@
-{% load sekizai_tags %}
+{% load sekizai_tags static %}
 
 {% block html %}
 <!DOCTYPE html>
@@ -11,16 +11,27 @@
     <title>{% block title %}SudBoard{% endblock title %}</title>
     {% endblock meta %}
     {% block head_css %}
+    <link rel="stylesheet" href="{% static "style.css" %}">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css"%}">
     {% endblock head_css %}
     {% block head_js %}
+        <script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
+     <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
     {% endblock head_js %}
   </head>
+  {% block  body_message %}
+  {% endblock %}
+
   <div id="sidebar">
         {% block sidebar %}
         {% endblock %}
   </div>
   <body id="{% block body_id %}{% endblock body_id %}" class="{% block body_class %}{% endblock body_class %}">
   {% block  body_content %}
+
+  {% block data_loader%}
+  {% endblock %}
+
   {% endblock body_content %}
   {% block footer %}
 		{% include "footer.html" %}

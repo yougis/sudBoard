@@ -2,6 +2,7 @@ from enum import Enum
 class TypeVizEnum(Enum):
 #ennumeration Publication
     CHOROPLETH_MAP = 'Carte choropleth'
+    POINT_MAP = 'Carte cercle proportionnel'
     TABLE = 'Table'
     BAR_GRAPH = 'Graphique en barre'
     LINE_GRAPH = 'Graphique en ligne'

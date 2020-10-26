@@ -16,17 +16,15 @@ admin.site.register(BoardEntity, BoardAdmin)
 class VizEntityAdmin(admin.ModelAdmin):
     list_display = ('title', 'slug')
     prepopulated_fields = {'slug': ('title',)}
-    def save_model(self, request, obj, form, change):
-        #VizEntity.objects.addVizAppInstance(obj.createVizAppFromJsonParameters(initSession=True))
-       #if (obj._viz['vizApp'] == None):
-       #    obj._viz['vizApp'] = obj.createVizFromJsonParameters(initSession=True)
-        super().save_model(request, obj, form, change)
 
 admin.site.register(VizEntity, VizEntityAdmin)
 
 
 class TraceEntityAdmin(admin.ModelAdmin):
-    list_display = ('name','dataConnectorParam')
+    list_display = ('name','dataConnectorParam','board','get_vizListe')
+
+    def get_vizListe(self, obj):
+        return ";\n".join([v.title for v in obj.vizListe.all()])
 
 
 admin.site.register(TraceEntity,TraceEntityAdmin)

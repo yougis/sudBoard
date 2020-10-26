@@ -9,7 +9,6 @@ class DicoUtils():
 
 
 
-
 class ParamsUtils():
 
     def recursiveParamToJsonDict(self, parameters):

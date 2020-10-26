@@ -36,74 +36,64 @@ class TraceEntity(models.Model):
     def __str__(self):
         return self.name
 
-    def manual_init(self):
+    def initializeLoading(self):
         self.dataLoading = False
         self.dataReady = False
-        self.progressBar = ProgressExtMod()
+        self.dataFrame = pd.DataFrame()
 
-    def getConnector(self):
-        connector = ConnectorInterface.get(self.dataConnectorParam)
-        return connector
+    def setConnector(self):
+        self.connectorInterface = ConnectorInterface.get(self.dataConnectorParam)
+        print('Récupération du connecteur {} de la trace {}'.format(self.connectorInterface.connectorType, self.name))
+        return self.connectorInterface
 
     @property
     def isDataInCache(self):
-        dataConnector = self.getConnector()
-        return dataConnector.isDataInCache()
+        return self.connectorInterface.isDataInCache()
 
     @property
     def getSample_data(self):
-        dataConnector = self.getConnector()
-        return dataConnector.sample_data
+        return self.connectorInterface.sample_data
 
     def lookCachedData(self):
-        dataConnector = self.getConnector()
-        self.data = dataConnector.lookCachedData()
+        self.connectorInterface.caching_in_progress = True
+        self.dataFrame = self.connectorInterface.lookCachedData()
+        print("Récupération des Data {} en cache".format(self.connectorInterface.sample_or_full_from_cache))
 
     @property
     def getTotalNbEntity(self):
-        dataConnector = self.getConnector()
-        return dataConnector.connector.totalNbEntity
+        return self.connectorInterface.connector.totalNbEntity
 
     @property
     def getNbEntityLoaded(self):
-        dataConnector = self.getConnector()
-        return dataConnector.connector.nbEntityLoaded
+        return self.connectorInterface.connector.nbEntityLoaded
 
     @property
     def getNbRequest(self):
-        dataConnector = self.getConnector()
-        return dataConnector.connector.nbRequest
+        return self.connectorInterface.connector.nbRequest
 
     def configureConnector(self,sampleOrFull):
-        self.data = pd.DataFrame()
-        dataConnector = self.getConnector()
-        dataConnector.caching_in_progress = True
-        self.setLoading()
+        print("Configuration du connector Interface en mode {} pour la trace {}".format(sampleOrFull, self.name))
+        self.setConnector()
+        self.dataFrame = pd.DataFrame()
 
         if sampleOrFull == SAMPLE:
-            dataConnector.toSampleOnly()
+            self.connectorInterface.toSampleOnly()
         elif sampleOrFull == FULL:
-            dataConnector.toFullData()
+            self.connectorInterface.toFullData()
 
     def finishConnection(self):
-        dataConnector = self.getConnector()
-        dataConnector.caching_in_progress = False
         self.setReady()
-        dataConnector.disconnect()
+        self.connectorInterface.disconnect()
+        print("Connection terminée pour la trace {}".format(self.name))
 
     def loadData(self):
-        dataConnector = self.getConnector()
-        self.data = dataConnector.getData()
+        self.setLoading()
+        self.dataFrame = self.connectorInterface.getData()
+        print("Loading des données avec extraParams {}".format(self.connectorInterface.connector.extraParams))
+
 
     def loadSliceData(self, extraParams):
-        dataConnector = self.getConnector()
-        dataConnector.connector.extraParams = extraParams
-        data = dataConnector.connector.getSlicedData()
-
-        if not isinstance(data, gpd.GeoDataFrame):
-            if (GeomUtil.getIsGeo(self, dataframe=data)):
-                data = GeomUtil.transformToGeoDf(self,dataframe=data)
-        self.data = self.data.append(data)
+        self.connectorInterface.connector.extraParams = extraParams
 
         # pour la dernière passe
         if extraParams["end"] >= self.getTotalNbEntity:
@@ -111,15 +101,36 @@ class TraceEntity(models.Model):
         else:
             self.setLoading()
 
+        data = self.connectorInterface.connector.getSlicedData()
+
+        print("Loading des données en mode SLICED avec extraParams {}".format(self.connectorInterface.connector.extraParams))
+
+
+        if not isinstance(data, gpd.GeoDataFrame):
+            if (GeomUtil.getIsGeo(self, dataframe=data)):
+                data = GeomUtil.transformToGeoDf(self.connectorInterface,dataframe=data)
+                self.isGeo = True
+                print("Donnée rendu compatible pour les traitements spatiaux")
+
+        self.dataFrame= self.dataFrame.append(data)
+
+        print(
+        """
+        Entités en cours d'upload : {} 
+        {}        
+        """.format(data.shape[0], data.head()))
+
+        print("Entités chargées dans la trace : {}".format(self.dataFrame.shape[0]))
+
     def setLoading(self):
         self.dataLoading = True
         self.dataReady = False
+        print("Donnée en cours de chargement pour la trace {}".format(self.name))
 
     def setReady(self):
         self.dataLoading = False
         self.dataReady = True
-
-
+        print("Donnée prête pour la trace {}".format(self.name))
 
     def dataProfileApp(self):
         data = self.data
@@ -135,8 +146,8 @@ class TraceEntity(models.Model):
         json = {}
         id = random.randint(0,10000000)
         json['connector-id'] = str(id)
-        json['connector'] = "RestApi"
-        json['url'] = "/ref/serail/Adresse"
+        json['connector'] = "Url"
+        json['url'] = "/ref/serail/Voirie"
         json['extraParams']={'tat':"dd",'cac':"a"}
         self.dataConnectorParam = json
         super().save(*args, **kwargs)

@@ -41,8 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'sekizai',
+    'django_apscheduler',
     'bokeh.server.django',
     'vizApps'
+
 ]
 
 MIDDLEWARE = [
@@ -103,6 +105,13 @@ EXTERNE_DATABASES = {
         'USER': 'ref',
         'PASSWORD': 'ref',
         'HOST': 'pgsql1-qualif.province-sud.qualif',
+        },
+    'externe': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'externe',
+        'USER': '',
+        'PASSWORD': '',
+        'HOST': 'pgsql2-qualif.province-sud.qualif',
         }
 }
 
@@ -144,7 +153,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, ""),
+    os.path.join(BASE_DIR, "static"),
     bokehjsdir(),
     ("extensions/panel","/home/yogis/Apps/django3pyhon3/lib/python3.7/site-packages/panel/dist/"),
 

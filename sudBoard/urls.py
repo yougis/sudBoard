@@ -18,6 +18,8 @@ from django.contrib import admin
 from django.urls import path
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from vizApps.services.board import BoardService
+from vizApps.services.dataSource import dataLoaderService
+
 from vizApps.services.viz import VizService
 
 from vizApps.controllers.BoardController import BoardController
@@ -37,6 +39,7 @@ urlpatterns = [
 bokeh_apps = [
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getApp),
     autoload(f"^studio/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppEditMode),
+    autoload(f"^studio/dataloader/", dataLoaderService.getAppDataLoader),
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),
 ]
 

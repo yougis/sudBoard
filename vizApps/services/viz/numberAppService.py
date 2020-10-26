@@ -1,19 +1,23 @@
 from vizApps.services.viz.baseVizAppService import BaseVizApp
 from vizApps.domain.TypeVizEnum import TypeVizEnum
-import pandas as pd
+import panel as pn
 import holoviews as hv
-
+import param
 import hvplot.pandas
 
-class TableApp(BaseVizApp):
+class NumberApp(BaseVizApp):
+    column = param.Selector()
 
     def __init__(self, **params):
         self.type = TypeVizEnum.TABLE
-        super(TableApp, self).__init__(**params)
+        super(NumberApp, self).__init__(**params)
 
     def getView(self):
+
         return self.overlays
 
+    @param.depends('column')
     def createOverlay(self, **kwargs):
         data = kwargs.get("traceParam").data
-        return hv.Table(data)
+
+        return pn.Row(pn.pane.HTML(data[self.column]))

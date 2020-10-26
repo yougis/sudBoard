@@ -10,8 +10,8 @@ class JossoSession():
     loginDev = "a"
     passwordDev = ""
 
-    # parametres  pour se connecter à une application en prod
-    baseUrl = BASE_URL.__getitem__(1)[1]
+    # parametres  pour se connecter à une application en prod ou qualif
+    baseUrl = BASE_URL.__getitem__(0)[1]
     login = "hugo.roussaffa"
     login = login + '@province-sud.nc'
     password = "MCot9a9.u"
@@ -52,4 +52,6 @@ class JossoSession():
             self.cookies.update([('usernameLoginJOSSO', self.login)])
 
     def connectJosso(self):
+        url = self.baseUrl
+
         pass
