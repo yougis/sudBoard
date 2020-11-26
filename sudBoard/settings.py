@@ -16,7 +16,16 @@ from bokeh.settings import bokehjsdir
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-BASE_URL = [('PROD', 'https://psud.nc'),('QUALIF', 'https://qualif.psud.nc')]
+ENV = "DEV"
+
+JOSSO_ENV = "PROD"
+
+BASE_URL = [('PROD', 'https://psud.nc'),('QUALIF', 'https://qualif.psud.nc'),('DEV',"http://localhost:7000")]
+BASE_URL_DIC = {
+    'PROD':'https://psud.nc',
+    'QUALIF': 'https://qualif.psud.nc',
+    'DEV':"http://localhost:7000"
+}
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/3.0/howto/deployment/checklist/
@@ -47,6 +56,8 @@ INSTALLED_APPS = [
 
 ]
 
+AUTHENTICATION_BACKENDS = ['vizApps.jossoAuthBackends.PsudJOSSOProvider']
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -55,6 +66,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'vizApps.psudJossoAuthMiddleware.PsudJossoAuthMiddleware'
 ]
 
 ROOT_URLCONF = 'sudBoard.urls'

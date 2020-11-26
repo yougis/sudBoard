@@ -16,4 +16,5 @@ class TableApp(BaseVizApp):
 
     def createOverlay(self, **kwargs):
         data = kwargs.get("traceParam").data
-        return hv.Table(data)
+        overlayElement = hv.Table(data)
+        return hv.Overlay([overlayElement])

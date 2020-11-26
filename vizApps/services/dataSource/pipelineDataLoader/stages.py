@@ -6,8 +6,13 @@ import geoviews as gv
 from cartopy import crs
 from holoviews.plotting.links import DataLink
 from holoviews import opts
+from bokeh.models import WheelZoomTool
 
 from vizApps.Utils.geomUtils import GeomUtil
+from vizApps.services.viz.baseMapAppService import BaseMapApp
+from vizApps.domain.Viz import VizEntity
+
+from vizApps.services.trace.traceParam import TraceParam
 import holoviews as hv
 from numpy import random, nan
 
@@ -232,13 +237,17 @@ class ReadData(param.Parameterized):
                 self.dataframe[c] = self.dataframe[c].apply(lambda x: nan if len(x) == 0 else x)
 
         dataTable = self.dataframe[self.select_column]
+
         if GeomUtil.getIsGeo(self, dataTable):
+            wheel_zoom = WheelZoomTool(zoom_on_axis=False)
             tableDf = pd.DataFrame(dataTable.drop(['geometry'],axis=1))
             table = hv.Table(tableDf)
-            map = gv.Polygons(dataTable, crs=crs.GOOGLE_MERCATOR)
-            #table = hv.Table(map)
-            DataLink(map,table)
-            return  ( map + table).opts(opts.Polygons(tools=['hover', 'tap']))
+
+            element = GeomUtil.getGeoElementFromData(self, data=dataTable)
+            map = gv.Overlay([element]).options(
+            active_tools=['wheel_zoom'])
+            DataLink(element,table)
+            return  ( map * table).options(toolbar='above').opts( width=800, height=600)
         else:
             return pn.Column(hv.Table(dataTable))
 

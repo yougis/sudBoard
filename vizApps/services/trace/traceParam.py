@@ -1,10 +1,14 @@
 import param
 import panel as pn
 import pandas as pd
+import geopandas as gpd
 import holoviews as hv
 from vizApps.services.viz.progressExtModule import ProgressExtMod
 from vizApps.domain.TypeVizEnum import TypeVizEnum
 
+from vizApps.Utils.geomUtils import GeomUtil
+
+from holoviews import Overlay, NdOverlay, Dimension
 
 from holoviews.plotting.links import DataLink
 
@@ -35,6 +39,11 @@ class TraceParam(param.Parameterized):
         self.viz =  params.get("viz")
         self.trace = params.get("trace")
         self.data = self.getUpdatedData(self.trace.dataFrame)
+        self.overlayElement = None
+        self.overlay = None
+        self.idOverlayElement = None
+        self.groupeName = None
+        self.labelName = None
 
         super(TraceParam, self).__init__(data=self.data, viz=self.viz)
 
@@ -46,16 +55,29 @@ class TraceParam(param.Parameterized):
         return pn.Column(self.progress.view)
 
     def view(self):
-        widgetSelectColumn = self.settingWidgetSelectColumn()
-        table = hv.Table(self.overlay)
-
-        if len(table) == len(self.overlay):
-            pass
-            #DataLink(table,self.overlay)
-
+        if not self.overlay:
+            table = pn.pane.Markdown("## Pas de donnée chargée")
         else:
-            pass
-        return pn.Row(table,widgetSelectColumn)
+
+            #dataCentroid = GeomUtil.convertGeomToCentroid(self.trace,self.data)
+            #dataCentroid['x']= dataCentroid["geometry"].x
+            #dataCentroid['y'] = dataCentroid["geometry"].y
+            #longitude = Dimension('x', label= 'Longitude')
+            #latitude = Dimension('y', label='Latitude')
+            data = self.data
+            if isinstance(self.data, gpd.GeoDataFrame):
+                data = GeomUtil.transformGdfToDf(self.trace, data)
+            table = hv.Table(data)
+
+            if len(table) == len(self.overlayElement):
+                pass
+                #DataLink(table,self.overlayElement)
+
+        return pn.Row(table)
+
+    def panel(self):
+        panel = pn.Row(self.viz.getConfigTracePanel)
+        return panel
 
 
     def populateListeType(self, dataFrame):
@@ -65,15 +87,26 @@ class TraceParam(param.Parameterized):
         self.listeObjet = list(dataFrame.select_dtypes('object').columns)
         self.listeTexte = list(dataFrame.select_dtypes('string').columns)
 
-    def attacheOverlay(self, overlay):
+    def setOverlay(self, overlay):
+
         self.overlay = overlay
+        if isinstance(overlay, Overlay) or isinstance(overlay, NdOverlay):
+
+            for k, v in self.overlay.items():
+                self.overlayElement = v
+                self.idOverlayElement = v.id
+                self.groupeName = v.group
+                self.labelName = v.label
+
+
 
     def getUpdatedData(self, dataFrame):
 
-        if self.viz.type not in GEOMPLOT:
-            return pd.DataFrame(dataFrame).drop(['geometry'],axis=1)
-        else:
-            return dataFrame
+        if self.viz.type not in GEOMPLOT and not dataFrame.empty: # on vire la geom si on est pas dans une Viz GEOMPLOT
+            dataFrame = GeomUtil.transformGdfToDf(self.trace, dataFrame)
+
+        self.populateListeType(dataFrame)
+        return dataFrame
 
 
     def settingWidgetSelectColumn(self):

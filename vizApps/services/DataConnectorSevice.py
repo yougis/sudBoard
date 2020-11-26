@@ -3,6 +3,7 @@ import requests
 import pandas as pd
 import json
 import geopandas as gpd
+from vizApps.Utils.dataUtils import DataUtils
 from vizApps.Utils.geomUtils import GeomUtil
 
 from sqlalchemy import create_engine
@@ -12,7 +13,7 @@ from sudBoard.settings import EXTERNE_DATABASES
 from vizApps.services.JossoSessionService import JossoSession
 
 # limit de nombre d'objet par requete
-LIMIT_PARAM = 500
+LIMIT_PARAM = 5000
 SAMPLE_LIMIT = 100
 
 
@@ -94,8 +95,6 @@ class ConnectorInterface():
         print(self.message)
 
         data = self.connector.getData(self.sample)
-        # convertir les types automatiquement
-        data = data.convert_dtypes()
 
         if data is None :
             return None
@@ -103,23 +102,16 @@ class ConnectorInterface():
         if not isinstance(data, gpd.GeoDataFrame):
             if (GeomUtil.getIsGeo(self, dataframe=data)):
                 data = GeomUtil.transformToGeoDf(self,dataframe=data)
-
-
+            else:
+                data = DataUtils.dataCleaner(self, data)
         self.setData(data)
-
-        for col in data.columns.values:
-
-            if self.data[col].isnull().values.any():
-                try:
-                    self.data[col].fillna('',inplace=True)
-                except:
-                    try:
-                        self.data[col].fillna(0,inplace=True)
-                    except:
-                        pass
-
-
         return self.data
+
+
+
+
+
+
 
     def setData(self, data):
         if self.sample_or_full_from_cache == SAMPLE and self.sample:

@@ -19,10 +19,6 @@ class BarGraphApp(BaseVizApp):
     def createOverlay(self, **kwargs):
         traceP= kwargs["traceParam"]
         data = traceP.data
-        vdims = traceP.listeEntier
-        if len(vdims) == 1:
-            vdims.append(vdims[0])
-        #absice = kwargs.get("absice")
         groupby= kwargs.get("groupby")
 
-        return data.hvplot.bar()# * hv.Histogram(data)# * hv.Bars(data)
+        return hv.Overlay([data.hvplot.bar()])# * hv.Histogram(data)

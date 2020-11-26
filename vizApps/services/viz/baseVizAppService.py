@@ -32,7 +32,7 @@ def blocking_function(self, trace, step):
 
     dataConnector = trace.connectorInterface
 
-    if step >= 1000:
+    if step >= 2000:
         return self, trace
 
     # on test si les données n'ont pas déjà été chargé pour un autre viz
@@ -69,9 +69,10 @@ class BaseVizApp(param.Parameterized):
         self.configTracePanel = pn.Column()
         self.configVizPanel = pn.Column()
         self.debugPanel = pn.Column()
+        self.silently = False
         super(BaseVizApp, self).__init__(**params)
 
-    @param.depends("viewable", "loaded","change_state") # ajouter aussi dans les classe heritant de la baseVizApp
+    @param.depends("viewable", "loaded","change_state") # ajouter aussi dans les classes heritantes de la baseVizApp
     def view(self):
 
         if self.viewable and not self.loaded :
@@ -91,47 +92,37 @@ class BaseVizApp(param.Parameterized):
 
             return self.getView()
 
+    ###### Gestion des Panels
+
     def getDebugPanel(self):
         self.debugPanel = pn.Column(self.param)
         return self.debugPanel
 
+    def getConfigTracePanel(self, **params):
 
-    def getConfigTracePanel(self):
         return self.configTracePanel
 
     def getConfigVizPanel(self):
         return self.configVizPanel
 
-   #@param.depends("traceSelector")
-   #def traceParamPanel(self):
-   #    self.getPanel()
-   #    self.param.traceSelector.objects = self.getAllTraceParam()
-   #    panel = pn.Column(self.param.traceSelector, expand_button=False, expand=True)
-   #    return panel
-
+    ###### Gestion des Rafraichissements
 
     def refreshViz(self):
         for trace in self.traces:
             self.doRefreshByTrace(trace)
 
     def doRefreshByTrace(self, trace):
-
+        traceP = self.getTraceParamByTrace(trace)
         overlay = self.configureOverlay(trace)
-        self.refreshOverlay(overlay)
-        #self.clearAllOverlays()
-        #for trace in self.traces:
+        self.refreshOverlay(overlay, traceP=traceP)
         self.changeState()
-
 
     def doRefreshByTraceParam(self, traceP):
 
         trace = self.getTraceByTraceParam(traceP)
 
         overlay = self.configureOverlay(trace)
-        self.refreshOverlay(overlay)
-        #self.clearAllOverlays()
-        #for trace in self.traces:
-
+        self.refreshOverlay(overlay, traceP=traceP)
         self.changeState()
 
     def changeState(self):
@@ -141,12 +132,27 @@ class BaseVizApp(param.Parameterized):
             self.change_state = True
 
 
-    def formatter(value):
-        return str(value)
+    ###### Gestion des TRACES
+
+    def getTraceParamByTrace(self, trace):
+        for tuple in self.tracesParam:
+            if tuple[0] == trace:
+                return tuple[1]
+
+    def getTraceByTraceParam(self, traceParam):
+        for tuple in self.tracesParam:
+            if tuple[1] == traceParam:
+                return tuple[0]
+
+    def getAllTraceParam(self):
+        return [tuple[1] for tuple in self.tracesParam]
 
     def addTrace(self, trace):
         if not trace in self.traces:
             self.traces.append(trace)
+            traceP = TraceParam(trace=trace, data=trace.dataFrame, viz=self)
+            self.tracesParam.append((trace, traceP))
+
 
     def tracesLoader(self, assyncLoading=True):
         for trace in self.traces:
@@ -158,9 +164,11 @@ class BaseVizApp(param.Parameterized):
 
     def dataLoader(self, trace, assyncLoading=True):
         allDataAlreadyGetFromCache = None
+        traceP = self.getTraceParamByTrace(trace)
 
         # on regarde d'abord si les full data sont en cache
         trace.configureConnector(FULL)
+
 
         if trace.isDataInCache:
             trace.lookCachedData()
@@ -177,8 +185,6 @@ class BaseVizApp(param.Parameterized):
                 trace.loadData()
                 trace.finishConnection()
 
-
-
         if trace.getTotalNbEntity == trace.dataFrame.shape[0]:
             # on a toute les données disponible même avec le sample
             allDataAlreadyGetFromCache = True
@@ -186,16 +192,13 @@ class BaseVizApp(param.Parameterized):
 
 
         if allDataAlreadyGetFromCache:
-
-            #self.refreshAllVizWithSameTrace(trace=trace)
             self.setLoaded()
             trace.setReady()
             self.doRefreshByTrace(trace)
             return
         else:
             overlay = self.configureOverlay(trace=trace)
-            self.addOverlay(overlay)
-            #self.createAllVizWithSameTrace(trace)
+            self.addOverlay(overlay, traceParam=traceP)
 
         if assyncLoading == True:
             self.initProgressBarForAllVizWithSameTrace(trace=trace)
@@ -238,15 +241,14 @@ class BaseVizApp(param.Parameterized):
             self = viz
             # update des reference pour le cache
             trace.connectorInterface.full_data = trace.dataFrame
-            #self.setLoaded()
-            #trace.setReady()
-            #self.refreshAllVizWithSameTrace(trace)
             self.doRefreshByTrace(trace)
 
     def setLoaded(self):
         if self.loaded == False:
             self.loaded = True
         self.loaded = True
+
+    ###### gestion des OVERLAYS
 
     def configureOverlay(self, trace, viz=None):
         # on ajoute une traceParam à la viz pour pouvoir la manipuler par la suite
@@ -256,76 +258,54 @@ class BaseVizApp(param.Parameterized):
         if not traceP:
             traceP = TraceParam(trace=trace, data=trace.dataFrame, viz=self)
             self.tracesParam.append((trace, traceP))
-
-            self.param.traceSelector.objects = self.getAllTraceParam()
-            traceP.populateListeType(trace.dataFrame)
-
         else:
             # on met à jour le dataframe de la traceP
             traceP.data = traceP.getUpdatedData(trace.dataFrame)
 
-
-            # dans ce cas on doit aussi rafraichir cette autre viz
-        kdims =  []
         overlay = self.createOverlay(traceParam=traceP, label=trace.name)
-        overlay.id = trace.id
-        if isinstance(overlay, Overlay) or isinstance(overlay, NdOverlay):
-            for k, v in overlay.items():
-                traceP.overlay = v
-        else:
-            traceP.overlay = overlay
-
         self.nb_loaded = str(trace.dataFrame.shape[0])
         return overlay
 
-    def configureOverlayByTraceP(self, traceP, viz=None):
-        return
+    def finderOverlayByGroup(self, tree, groupName):
 
-
-    def recursiveOverlayFinderById(self, tree,overlayId):
         children = tree.get('children')
         for child in children:
             node = tree.get(child)
-            if node.id == overlayId:
+            if node.group == groupName:
                 return node
             else:
                 if hasattr(node,'children'):
-                    self.recursiveOverlayFinderById(node, overlayId)
+                    self.finderOverlayByGroup(node, groupName)
                 else:
                     return None
 
 
+    def delGroupOverlay(self, groupName):
 
-    def addOverlay(self, newOverlay):
+        if groupName in self.overlays.children:
+            self.overlays.__delitem__(groupName)
 
+
+    def addOverlay(self, newOverlay, traceParam):
+        if not newOverlay:
+            return
 
         if self.overlays:
-            ov = self.recursiveOverlayFinderById(self.overlays, newOverlay.id)
 
-            if ov: # on remplace si l'id existe déja
-                precedentOverlays = self.overlays
-                self.overlays = precedentOverlays * newOverlay
+            if traceParam.groupeName:
+                self.delGroupOverlay(traceParam.groupeName)
+                self.overlays = self.overlays * newOverlay
 
-            #for ov in self.overlays:
-            #    if ov.id == newOverlay.id:
-            #        ov = newOverlay
-            #        return self.overlays
-                precedentOverlays = self.overlays
-                self.overlays = precedentOverlays * newOverlay
             else:
                 self.overlays = self.overlays * newOverlay
 
         else:
-            self.overlays = hv.Overlay() * newOverlay
+            self.overlays = hv.Overlay([newOverlay])
+
+        traceParam.setOverlay(newOverlay)
+
         return self.overlays
 
-    def delOverlay(self, overlayToDel):
-        overlaysToSearchIn = self.getAllOverlay()
-        list = self.findAllPathStringOverlayWithout(overlayToDel)
-        if list:
-            return overlaysToSearchIn.filter(list)
-        else:
-            return self.clearAllOverlays()
 
     def clearAllOverlays(self):
         self.overlays = hv.Overlay()
@@ -337,13 +317,9 @@ class BaseVizApp(param.Parameterized):
                 new_attrtree.set_path(path, item)
         return new_attrtree
 
-    def replaceOverlay(self, overlay, newOverlay):
-        self.delOverlay(overlay)
-        self.addOverlay(newOverlay)
-
-    def refreshOverlay(self, overlay):
-        self.delOverlay(overlay)
-        self.addOverlay(overlay)
+    def refreshOverlay(self, overlay, traceP):
+        self.addOverlay(overlay,traceParam=traceP)
+        print("After refreshing overlay with options : ", self.overlays.opts.info())
 
     def findAllPathStringOverlayWithout(self, idToNotKeep):
         pathList = []
@@ -363,18 +339,8 @@ class BaseVizApp(param.Parameterized):
         return self.opts(options)
 
 
-    def getTraceParamByTrace(self, trace):
-        for tuple in self.tracesParam:
-            if tuple[0] == trace:
-                return tuple[1]
 
-    def getTraceByTraceParam(self, traceParam):
-        for tuple in self.tracesParam:
-            if tuple[1] == traceParam:
-                return tuple[0]
-
-    def getAllTraceParam(self):
-        return [tuple[1] for tuple in self.tracesParam]
+    #### Fonctions sur de multiples Instances Viz
 
 
     def refreshAllVizWithSameTrace(self,trace=None):
@@ -387,7 +353,8 @@ class BaseVizApp(param.Parameterized):
         vizListe = VizConstructor.getVizByTraceIdAndSessionId(traceId=trace.id, sessionId=self._session)
         for viz in vizListe:
             overlay = self.configureOverlay(trace=trace, viz=viz)
-            viz.addOverlay(overlay)
+            traceP = self.getTraceParamByTrace(trace)
+            viz.addOverlay(overlay, traceParam=traceP)
 
         if len(vizListe)>1:
             pass
@@ -400,6 +367,11 @@ class BaseVizApp(param.Parameterized):
         traceParam.progress.num_tasks = trace.getNbRequest
 
 
+
+    #### Divers
+
+    def formatter(value):
+        return str(value)
 
 
     ############## @abstractmethod

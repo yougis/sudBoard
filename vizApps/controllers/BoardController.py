@@ -26,7 +26,7 @@ class BoardController():
                 # on persiste les parametres des vizApp dans la VizEntity
                 # on fais ça pour toutes les VizEntity de la BoardEntity
 
-                vizAppListe = VizConstructor.getVizAppInstancesBySessionId(request.COOKIES.get('session_id'))
+                vizAppListe = VizConstructor.getVizAppInstancesBySessionId(request.COOKIES.get('session_id')+ request.COOKIES.get('board_id'))
 
                 if vizAppListe :
                     for vizApp in vizAppListe:
@@ -121,6 +121,7 @@ class BoardController():
         response = template
 
         response.set_cookie('session_id', session_id)
+        response.set_cookie('board_id', board.id)
 
         return response
 

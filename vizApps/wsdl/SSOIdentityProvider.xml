@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wsdl:definitions targetNamespace="http://josso.org/gateway/identity/service/ws/impl" xmlns:apachesoap="http://xml.apache.org/xml-soap" xmlns:impl="http://josso.org/gateway/identity/service/ws/impl" xmlns:intf="http://josso.org/gateway/identity/service/ws/impl" xmlns:soapenc="http://schemas.xmlsoap.org/soap/encoding/" xmlns:tns1="http://josso.org/gateway/session/service/ws/impl" xmlns:wsdl="http://schemas.xmlsoap.org/wsdl/" xmlns:wsdlsoap="http://schemas.xmlsoap.org/wsdl/soap/" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+<!--WSDL created by Apache Axis version: 1.4
+Built on Apr 22, 2006 (06:55:48 PDT)-->
+ <wsdl:types>
+  <schema targetNamespace="http://josso.org/gateway/identity/service/ws/impl" xmlns="http://www.w3.org/2001/XMLSchema">
+   <import namespace="http://josso.org/gateway/session/service/ws/impl"/>
+   <import namespace="http://schemas.xmlsoap.org/soap/encoding/"/>
+   <complexType name="SSOIdentityException">
+    <sequence/>
+   </complexType>
+   <complexType name="IdentityProvisioningException">
+    <complexContent>
+     <extension base="impl:SSOIdentityException">
+      <sequence/>
+     </extension>
+    </complexContent>
+   </complexType>
+  </schema>
+  <schema targetNamespace="http://josso.org/gateway/session/service/ws/impl" xmlns="http://www.w3.org/2001/XMLSchema">
+   <import namespace="http://josso.org/gateway/identity/service/ws/impl"/>
+   <import namespace="http://schemas.xmlsoap.org/soap/encoding/"/>
+   <complexType name="AssertionException">
+    <sequence/>
+   </complexType>
+   <complexType name="AssertionNotValidException">
+    <complexContent>
+     <extension base="tns1:AssertionException">
+      <sequence>
+       <element name="message" nillable="true" type="xsd:string"/>
+      </sequence>
+     </extension>
+    </complexContent>
+   </complexType>
+  </schema>
+ </wsdl:types>
+
+   <wsdl:message name="assertIdentityWithSimpleAuthenticationResponse">
+
+      <wsdl:part name="assertIdentityWithSimpleAuthenticationReturn" type="xsd:string"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="AssertionNotValidException">
+
+      <wsdl:part name="fault" type="tns1:AssertionNotValidException"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="globalSignoffResponse">
+
+   </wsdl:message>
+
+   <wsdl:message name="IdentityProvisioningException">
+
+      <wsdl:part name="fault" type="impl:IdentityProvisioningException"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="assertIdentityWithSimpleAuthenticationRequest">
+
+      <wsdl:part name="in0" type="xsd:string"/>
+
+      <wsdl:part name="in1" type="xsd:string"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="resolveAuthenticationAssertionRequest">
+
+      <wsdl:part name="assertionId" type="xsd:string"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="globalSignoffRequest">
+
+      <wsdl:part name="in0" type="xsd:string"/>
+
+   </wsdl:message>
+
+   <wsdl:message name="resolveAuthenticationAssertionResponse">
+
+      <wsdl:part name="resolveAuthenticationAssertionReturn" type="xsd:string"/>
+
+   </wsdl:message>
+
+   <wsdl:portType name="SSOIdentityProvider">
+
+      <wsdl:operation name="assertIdentityWithSimpleAuthentication" parameterOrder="in0 in1">
+
+         <wsdl:input message="impl:assertIdentityWithSimpleAuthenticationRequest" name="assertIdentityWithSimpleAuthenticationRequest"/>
+
+         <wsdl:output message="impl:assertIdentityWithSimpleAuthenticationResponse" name="assertIdentityWithSimpleAuthenticationResponse"/>
+
+         <wsdl:fault message="impl:IdentityProvisioningException" name="IdentityProvisioningException"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="resolveAuthenticationAssertion" parameterOrder="in0">
+
+         <wsdl:input message="impl:resolveAuthenticationAssertionRequest" name="resolveAuthenticationAssertionRequest"/>
+
+         <wsdl:output message="impl:resolveAuthenticationAssertionResponse" name="resolveAuthenticationAssertionResponse"/>
+
+         <wsdl:fault message="impl:AssertionNotValidException" name="AssertionNotValidException"/>
+
+         <wsdl:fault message="impl:IdentityProvisioningException" name="IdentityProvisioningException"/>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="globalSignoff" parameterOrder="in0">
+
+         <wsdl:input message="impl:globalSignoffRequest" name="globalSignoffRequest"/>
+
+         <wsdl:output message="impl:globalSignoffResponse" name="globalSignoffResponse"/>
+
+         <wsdl:fault message="impl:IdentityProvisioningException" name="IdentityProvisioningException"/>
+
+      </wsdl:operation>
+
+   </wsdl:portType>
+
+   <wsdl:binding name="SSOIdentityProviderSoapBinding" type="impl:SSOIdentityProvider">
+
+      <wsdlsoap:binding style="rpc" transport="http://schemas.xmlsoap.org/soap/http"/>
+
+      <wsdl:operation name="assertIdentityWithSimpleAuthentication">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="assertIdentityWithSimpleAuthenticationRequest">
+
+            <wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="assertIdentityWithSimpleAuthenticationResponse">
+
+            <wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:output>
+
+         <wsdl:fault name="IdentityProvisioningException">
+
+            <wsdlsoap:fault encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" name="IdentityProvisioningException" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:fault>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="resolveAuthenticationAssertion">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="resolveAuthenticationAssertionRequest">
+
+            <wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="resolveAuthenticationAssertionResponse">
+
+            <wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:output>
+
+         <wsdl:fault name="AssertionNotValidException">
+
+            <wsdlsoap:fault encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" name="AssertionNotValidException" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:fault>
+
+         <wsdl:fault name="IdentityProvisioningException">
+
+            <wsdlsoap:fault encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" name="IdentityProvisioningException" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:fault>
+
+      </wsdl:operation>
+
+      <wsdl:operation name="globalSignoff">
+
+         <wsdlsoap:operation soapAction=""/>
+
+         <wsdl:input name="globalSignoffRequest">
+
+            <wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:input>
+
+         <wsdl:output name="globalSignoffResponse">
+
+            <wsdlsoap:body encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:output>
+
+         <wsdl:fault name="IdentityProvisioningException">
+
+            <wsdlsoap:fault encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" name="IdentityProvisioningException" namespace="http://josso.org/gateway/identity/service/ws/impl" use="encoded"/>
+
+         </wsdl:fault>
+
+      </wsdl:operation>
+
+   </wsdl:binding>
+
+   <wsdl:service name="SSOIdentityProviderService">
+
+      <wsdl:port binding="impl:SSOIdentityProviderSoapBinding" name="SSOIdentityProvider">
+
+         <wsdlsoap:address location="https://psud.nc/josso/services/SSOIdentityProviderSoap"/>
+
+      </wsdl:port>
+
+   </wsdl:service>
+
+</wsdl:definitions>

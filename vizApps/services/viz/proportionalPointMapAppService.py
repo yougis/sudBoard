@@ -21,18 +21,19 @@ SOFT_SIMPLIFY = 50.0
 
 class ProportionalPointMapAppService(BaseMapApp):
     variable_taille_point = param.Selector()
-
+    variable_couleur = param.Selector()
 
 
     def __init__(self, **params):
         self.type = TypeVizEnum.POINT_MAP
-        self._listeEntier = []
 
         super(ProportionalPointMapAppService, self).__init__(**params)
 
 
-    def getConfigTracePanel(self):
-        self.configTracePanel = pn.Column(self.param.variable_taille_point)
+    def getConfigTracePanel(self,**params):
+        #traceP = params.get("traceP")
+        self.configTracePanel = pn.Column(self.param.variable_taille_point, self.param.variable_couleur)
+
         return super().getConfigTracePanel()
 
     def getVizConfig(self):
@@ -43,29 +44,33 @@ class ProportionalPointMapAppService(BaseMapApp):
         # customize defaut options
         return super().getView()
 
-    @param.depends('variable_taille_point', watch=True)
-    def changePointSize(self):
-        pass
-        #self.param.variable_taille_point.objects = self._listeEntier
-       #if self.tracePContext:
-       #    self.tracePContext = None
-       #    self.doRefreshByTraceParam(self.tracePContext)
+    @param.depends('variable_taille_point', 'variable_couleur', watch=True)
+    def changeProperties(self):
+        if not self.silently:
+            self.refreshViz()
+        self.silently = False
 
     def createOverlay(self,**kwargs):
 
         traceP = kwargs.get("traceParam")
         data = traceP.data
         label  = kwargs.get("label")
-        self._listeEntier = traceP.listeEntier
-        self.param.variable_taille_point.objects = self._listeEntier
+        self.param.variable_taille_point.objects = traceP.listeEntier
+        self.param.variable_couleur.objects = data.columns
 
         if not self.variable_taille_point:
-            self.variable_taille_point = self._listeEntier[0]
+            self.silently = True
+            self.variable_taille_point = traceP.listeEntier[0]
 
-        self.tracePContext=traceP
+        if not self.variable_couleur:
+            self.silently = True
+            self.variable_couleur = traceP.listeEntier[0]
+
+
         vdims = traceP.listeEntier
+        kdims = list(data.columns)[5:-1]
+
         size = self.variable_taille_point
-        ndOverlays= []
 
         arrayGeomType = data.geom_type.unique()
 
@@ -74,7 +79,9 @@ class ProportionalPointMapAppService(BaseMapApp):
             data = data[data['geometry'].apply(lambda x: x.geom_type == geomType)]
 
             if geomType in POINT:
-                geomNdOverlay = gv.Points(data, vdims=vdims, crs=crs.GOOGLE_MERCATOR, label=label, group=POINT[0]).opts(size=dim(size))
+                geomNdOverlay = gv.Points(data, vdims=vdims, crs=crs.GOOGLE_MERCATOR, label=label, group=POINT[0], id=traceP.trace.id).options(size=dim(size).norm()*45)
+
+            ## Convertir les autres géometry en barycentre
             elif geomType in POLYGONE:
                 data['geometry'] = data.simplify(STRONG_SIMPLIFY,True)
                 geomNdOverlay =  gv.Polygons(data,vdims=vdims, crs=crs.GOOGLE_MERCATOR,label=label, group=POLYGONE[0])
@@ -93,12 +100,8 @@ class ProportionalPointMapAppService(BaseMapApp):
             else:
                 geomNdOverlay = None
 
-            ndOverlays.append(geomNdOverlay.opts(tools=['hover', 'tap'],color=vdims[0], cmap='Category20'))
 
+        overlay = hv.Overlay([geomNdOverlay.opts(tools=['hover', 'tap'],color=self.variable_couleur, cmap='Category20')])
 
-        overlays = hv.Overlay(ndOverlays)
-
-
-
-        return overlays
+        return overlay
 

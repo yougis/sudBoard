@@ -16,6 +16,10 @@ def getApp(doc):
             layout.append(pn.Row(traceParam.view))
     layout.server_doc(doc)
 
+def tabSelectioncallback(target,event):
+    target.object = event
+
+
 def getAppEditMode(doc):
     vizAppList = getVizAppList(doc)
     profileList = []
@@ -27,7 +31,8 @@ def getAppEditMode(doc):
         tabs = pn.Tabs((vizAppElement.title, vizAppElement.view ))
         for trace in vizAppElement.traces:
             traceParam = vizAppElement.getTraceParamByTrace(trace)
-            tabs.append((trace.name, pn.Row(pn.Column(traceParam.viewProgress,traceParam.view), vizAppElement.getConfigTracePanel)))
+            tabs.append((trace.name, pn.Row(pn.Column(traceParam.viewProgress,traceParam.view), traceParam.panel)))
+            #tabs.link(vizAppElement.traceSelector, callbacks={'value': tabSelectioncallback})
 
         tabs.append(('Config Viz', vizAppElement.getConfigVizPanel))
 
@@ -77,15 +82,14 @@ def getVizAppList(doc):
             else:
                 distinctVizListe.append(viz)
 
-    # on créer toutes les instances de viz si nécéssaire
+    # on créer toutes les instances de viz nécéssaire (sans doublons)
     for viz in distinctVizListe:
         vizAppElement = VizConstructor.getVizAppInstancesByVizEntityAndSessionId(viz.id,session)
         if not vizAppElement:
             if not viz.getVizApp:
                 # on initialize la viz à partir des parametres Json stockés en base
                 viz._vizApp = viz.createVizAppFromJsonParameters(initSession=True,session=session)
-            vizAppElement = viz.getVizApp
-
+            #vizAppElement = viz.getVizApp
 
     for viz in distinctVizListe:
         # on cherche à nouveau l'instance construite
@@ -95,37 +99,34 @@ def getVizAppList(doc):
         traceEntityListeViz = viz.traceentity_set.filter(board=board)
 
         for trace in traceEntityListeViz :
-            # on récupère l'instance de trace commune au board
+            # on récupère l'instance exacte  de la trace commune au board
             for t in traceListe:
                 if t == trace:
                     trace = t
                     print(trace,"   ",id(t),  'data Ready: ' ,trace.dataReady)
 
-
-            vizAppListForTrace = []
-
             vizAppElement.addTrace(trace)
 
-
+            vizAppElement.param.traceSelector.objects = vizAppElement.getAllTraceParam()
+            vizAppListForTrace = []
             vizAppListForTrace.append(vizAppElement)
             if vizAppElement in vizAppList:
                 break
             else:
                 vizAppList.append(vizAppElement)
 
-    # lors de l'initialisation on charge dans un premier temps les données sample pour un affichage rapide des compossants coté client
-    # surtout utile lorsqu'une Trace est chargée dans plusieurs Viz
-    for vizApp in vizAppListForTrace:
-        for trace in vizApp.traces:
-            print("vizapp : ", vizApp , "trace: ", trace, '  ', id(trace), 'data Ready: ' ,trace.dataReady)
-            if trace.dataLoading == True:
-                while trace.getSample_data.empty:
-                    pass
-            elif trace.dataReady == True:
-                pass
-            else:
-                pass
-                #vizApp.tracesLoader(assyncLoading=False)
+        # lors de l'initialisation on charge dans un premier temps les données sample pour un affichage rapide des compossants coté client
+        # surtout utile lorsqu'une Trace est chargée dans plusieurs Viz
+        #for vizApp in vizAppListForTrace:
+        #    for trace in vizApp.traces:
+        #        print("vizapp : ", vizApp , "trace: ", trace, '  ', id(trace), 'data Ready: ' ,trace.dataReady)
+        #        if trace.dataLoading == True:
+        #            while trace.getSample_data.empty:
+        #                pass
+        #        elif trace.dataReady == True:
+        #            pass
+        #        else:
+        #            vizApp.tracesLoader(assyncLoading=False)
 
     return vizAppList
 

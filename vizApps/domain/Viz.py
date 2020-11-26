@@ -5,6 +5,7 @@ from vizApps.Utils.utils import DicoUtils, ParamsUtils
 from vizApps.services.viz.choroplethMapAppService import ChoroplethMapAppService
 from vizApps.services.viz.barGraphAppService import BarGraphApp
 from vizApps.services.viz.tableAppService import TableApp
+from vizApps.services.viz.baseMapAppService import BaseMapApp
 from vizApps.services.viz.proportionalPointMapAppService import ProportionalPointMapAppService
 
 
@@ -59,12 +60,13 @@ class VizEntity(models.Model):
             TypeVizEnum.CHOROPLETH_MAP.name: ChoroplethMapAppService(viz_instance=self, session=session),
             TypeVizEnum.BAR_GRAPH.name: BarGraphApp(viz_instance=self, session=session),
             TypeVizEnum.TABLE.name : TableApp(viz_instance=self, session=session),
-            TypeVizEnum.POINT_MAP.name: ProportionalPointMapAppService(viz_instance=self, session=session)
+            TypeVizEnum.POINT_MAP.name: ProportionalPointMapAppService(viz_instance=self, session=session),
+            TypeVizEnum.BASE_MAP.name: BaseMapApp(viz_instance=self, session=session)
         }
         return switcher.get(typeViz, None)
 
     def save(self, *args, **kwargs):
-        excludeKey = {"name"} # on ne peut pas modifier le nom d'une viz (?)
+        excludeKey = {"name","loaded"} # on ne peut pas modifier le nom d'une viz (?)
 
 
 
