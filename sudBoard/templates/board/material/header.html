@@ -1,0 +1,25 @@
+<header class="mdc-top-app-bar app-bar mdc-top-app-bar--fixed" style="{% if header_background %}background-color: {{ header_background }} !important;{% endif %}{% if header_color %}color: {{ header_color }}{% endif %}" id="header">
+  <div class="mdc-top-app-bar__row">
+    <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+      {% if nav %}
+      <button class="material-icons mdc-top-app-bar__navigation-icon mdc-icon-button">menu</button>
+      {% endif %}
+      <div class="title-bar">
+        <span class="mdc-top-app-bar__title app-header">
+          {% if app_logo %}<a href="/"><img src="{{ app_logo }}" class="app-logo"></a>{% endif %}
+          {% if site_title %}<a class="title" href="/" >&nbsp;{{ site_title }}</a>{% endif %}
+          {% if site_title and app_title%}<span class="title">&nbsp;-</span>{% endif %}
+          {% if app_title %}<a class="title" href="" >&nbsp;{{ app_title }}</a>{% endif %}
+        </span>
+        <div id="header-items">
+          {{ header|safe }}
+        </div>
+        </div>
+    </section>
+    {% if busy %}
+	<div class="pn-busy-container">
+      {{ busy_indicator|safe }}
+	</div>
+	{% endif %}
+  </div>
+</header>

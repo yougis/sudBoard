@@ -1,22 +1,2 @@
 {% extends "studio/base_studio.html" %}
 
-
-
-{% block sidebar %}
-
-<!-- The sidebar -->
-<div class="sidebar">
-{% include "studio/side_bar.html" %}
-
-{% block action %}
-<form action="{% block action_name %}{% endblock %}" method="post">
-    {% csrf_token %}
-    <div class="sidebar_item--single">
-    {% block action_input %}
-    {% endblock %}
-    </div>
-</form>
-{% endblock %}
-</div>
-
-{% endblock %}

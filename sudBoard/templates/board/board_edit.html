@@ -1,17 +1,62 @@
-{% extends "studio/studio.html" %}
+{% extends "studio/base_studio.html" %}
 
-{% block body_content %}
+{% block css_resources %}
+{{ block.super }}
 
-<h1>{{boardName}}</h1>
+<link href="{{ template_resources.css.material }}" rel="stylesheet">
+<link rel="stylesheet" href="{{ template_resources.css.base }}">
+<link rel="stylesheet" href="{{ template_resources.css.theme }}">
+<link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css?family=Material+Icons&display=block" rel="stylesheet">
 
-    {{ script|safe }}
+
+{% endblock css_resources %}
+
+{% block head_js %}
+{{ block.super }}
+
+<script src="{{ template_resources.js.material }}"></script>
+{% endblock head_js %}
+{% block meta %}
+{{ block.super }}
+{% if app_favicon %}<link rel="icon" href="{{ app_favicon }}" type="{{favicon_type}}">{% endif %}
+{% if meta_name %}<meta name="name" content="{{ meta_name }}">{% endif %}
+{% if meta_description %}<meta name="description" content="{{ meta_description }}">{% endif %}
+{% if meta_keywords %}<meta name="keywords" content="{{ meta_keywords }}">{% endif %}
+{% if meta_author %}<meta name="author" content="{{ meta_author }}">{% endif %}
+{% if meta_refresh %}<meta http-equiv="refresh" content="{{ meta_refresh }}">{% endif %}
+{% if meta_viewport %}<meta name="viewport" content="{{ meta_viewport }}">{% endif %}
+{% if base_url and base_target %}<base href="{{ base_url }}" target="{{ base_target }}">{% endif %}
+{% endblock meta %}
+{% block contents %}
+
+<div class="mdc-typography" id="container">
+    {% include "board/material/header.html" %}
+
+
+
+{% block sidebar %}
+
+<!-- The sidebar -->
+
+{% include "board/material/sidebar.html" %}
+
 
 {% endblock %}
 
+<div class="mdc-drawer-app-content mdc-top-app-bar--fixed-adjust">
+    {% include "board/material/main.html" %}
+
+{% include "board/material/modal.html" %}
+</div>
+
+
+</div>
+
+{{ js_area|safe }}
+{% endblock %}
+
     {% block action_name %}
-
-
-
     {% endblock %}
 
     {{ board }}
@@ -21,5 +66,35 @@
     <button type="submit" name="save">Enregistrer</button>
 
     {% endblock %}
+{% block body_js %}
+{{ block.super }}
+{% if nav %}
+<script>
+  var drawer = mdc.drawer.MDCDrawer.attachTo(document.querySelector('.mdc-drawer'));
+  var topAppBar = mdc.topAppBar.MDCTopAppBar.attachTo(document.getElementById('header'));
+  topAppBar.setScrollTarget(document.getElementById('main'));
+  topAppBar.listen('MDCTopAppBar:nav', function() {
+    drawer.open = !drawer.open;
+    // Ensure bokeh layout recomputes layout
+    window.dispatchEvent(new Event('resize'));
+  });
+
+  drawer.open = true;
+  {% endif %}
+
+  var modal = document.getElementById("pn-Modal");
+  var span = document.getElementById("pn-closeModal");
+
+  span.onclick = function() {
+    modal.style.display = "none";
+  }
+
+  window.onclick = function(event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  }
+</script>
+{% endblock body_js %}
 
 

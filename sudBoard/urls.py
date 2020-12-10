@@ -38,6 +38,14 @@ urlpatterns = [
 
 bokeh_apps = [
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getApp),
+    autoload(f"^lumen/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppLumenMode),
+    autoload(f"^studio-lumen/board/modal/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getModalLumenEditor),
+    autoload(f"^studio-lumen/board/main/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getMainLumenEditor),
+    autoload(f"^studio-lumen/board/header/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getHeaderLumenEditor),
+    autoload(f"^studio-lumen/board/sidebar/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getSideBarLumenEditor),
+    autoload(f"^studio-lumen/board/js_area/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getJsAreaLumenEditor),
+    autoload(f"^studio-lumen/board/busy_indicator/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getBusyIndicatorLumenEditor),
+
     autoload(f"^studio/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppEditMode),
     autoload(f"^studio/dataloader/", dataLoaderService.getAppDataLoader),
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),

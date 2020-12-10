@@ -1,0 +1,27 @@
+{% block sidebar %}
+{% if nav %}
+<aside class="mdc-drawer mdc-top-app-bar--fixed-adjust mdc-drawer--dismissible mdc-drawer--open" id="sidebar">
+  <div class="mdc-drawer__content">
+    <div class="mdc-list">
+    {{ sidebar|safe }}
+      {% include "studio/trace_manager.html" %}
+      {% block action %}
+<form action="{% block action_name %}{% endblock %}" method="post">
+    {% csrf_token %}
+    <div class="sidebar_item--single">
+    {% block action_input %}
+
+    <button type="submit" name="addData"> + Données </button>
+    <button type="submit" name="save">Enregistrer</button>
+
+
+    {% endblock %}
+    </div>
+</form>
+{% endblock %}
+
+    </div>
+  </div>
+</aside>
+{% endif %}
+{% endblock sidebar %}

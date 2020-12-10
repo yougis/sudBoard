@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/3.0/ref/settings/
 
 import os
 from bokeh.settings import bokehjsdir
+from pathlib import Path
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -25,6 +26,10 @@ BASE_URL_DIC = {
     'PROD':'https://psud.nc',
     'QUALIF': 'https://qualif.psud.nc',
     'DEV':"http://localhost:7000"
+}
+
+LUMEN = {
+    "SOURCES_MODULE" : 'vizApps'+'.services'+'.lumen'+'.sources'
 }
 
 # Quick-start development settings - unsuitable for production
@@ -49,14 +54,14 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django_jinja',
     'sekizai',
-    'django_apscheduler',
     'bokeh.server.django',
     'vizApps'
 
 ]
 
-AUTHENTICATION_BACKENDS = ['vizApps.jossoAuthBackends.PsudJOSSOProvider']
+
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -72,9 +77,13 @@ MIDDLEWARE = [
 ROOT_URLCONF = 'sudBoard.urls'
 
 TEMPLATES = [
+
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'sudBoard', 'templates')],
+        'DIRS': [
+            os.path.join(BASE_DIR, 'sudBoard', 'templates'),
+            "/home/yogis/Apps/django3pyhon3/lib/python3.7/site-packages/panel/template"
+                 ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -167,6 +176,6 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, "static"),
     bokehjsdir(),
-    ("extensions/panel","/home/yogis/Apps/django3pyhon3/lib/python3.7/site-packages/panel/dist/"),
+    ("extensions/panel","/home/yogis/Apps/django3pyhon3/lib/python3.7/site-packages/panel/dist/")
 
 ]

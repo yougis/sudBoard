@@ -2,21 +2,20 @@ from sudBoard.settings import BASE_URL
 import requests
 import pandas as pd
 import json
+import param
+import intake
+
 import geopandas as gpd
 from vizApps.Utils.dataUtils import DataUtils
 from vizApps.Utils.geomUtils import GeomUtil
-from lumen.sources.base import  Source
+from lumen.sources.base import  Source, cached
+from lumen.util import get_dataframe_schema
 
-from sqlalchemy import create_engine
 
-from sudBoard.settings import EXTERNE_DATABASES
-
-from vizApps.services.JossoSessionService import JossoSession
 
 # limit de nombre d'objet par requete
 LIMIT_PARAM = 5000
 SAMPLE_LIMIT = 100
-
 
 REST_API = "Url"
 DATABASE = "SQL"
@@ -31,121 +30,49 @@ CONNECTOR_LIST = [(REST_API,"WEB - Application métier Province Sud"),
 FULL = "FULL"
 SAMPLE = "SAMPLE"
 
-class ConnectorInterface():
-    instances = []
+from sqlalchemy import create_engine
 
-    def __init__(self, json):
-        self.jossoSession = JossoSession()
-        self.id = json["connector-id"]
-        self.data = pd.DataFrame()
-        self.sample_data = pd.DataFrame()
-        self.full_data = pd.DataFrame()
-        self.sample_or_full_from_cache = None #SAMPLE or FULL
-        self.sample = False
-        self.no_cache = False
-        self.caching_in_progress = False
-        self.connectorType= json["connector"]
-        self.message = None
-        ConnectorInterface.instances.append(self)
-        if (json["connector"] == REST_API ):
-            self.connector = PsudRestApi(json['url'], json['extraParams'],self.jossoSession)
-        elif (json["connector"] == DATABASE):
-            self.connector = PsudDatabase(json['db'], json['table'], json['whereClause'],self.jossoSession)
+from sudBoard.settings import EXTERNE_DATABASES
 
-    def configureConnector(self,sampleOrFull):
-        print("Configuration du connector Interface en mode {}".format(sampleOrFull))
-        if sampleOrFull == SAMPLE:
-            self.toSampleOnly()
-        elif sampleOrFull == FULL:
-            self.toFullData()
+from vizApps.services.JossoSessionService import JossoSession
 
-    @classmethod
-    def get(cls, jsonParams):
-        id = jsonParams["connector-id"]
-        instance = [inst for inst in cls.instances if inst.id == id]
-        if len(instance) >= 1:
-            return instance[0]  # on renvoit uniquement un objet
-        return ConnectorInterface(jsonParams)
-
-    def isDataInCache(self):
-        if self.sample_or_full_from_cache == SAMPLE and not self.sample_data.empty:
-            return True
-        elif self.sample_or_full_from_cache == FULL and not self.full_data.empty:
-            return True
-        else:
-            return False
-
-    def lookCachedData(self):
-        if self.isDataInCache():
-             self.data = self.returnSampleOrFullData()
-             return self.data
-        else:
-            self.message = 'Pas de données {} en cache pour le type de demande'.format(self.sample_or_full_from_cache)
-            print(self.message)
-            return None
-
-    def returnSampleOrFullData(self):
-        data = {
-            SAMPLE: self.sample_data,
-            FULL : self.full_data
-        }
-        return data.get(self.sample_or_full_from_cache)
-
-    def getData(self):
-        self.message = "Loading des données -- ", "connecteur :", self.connectorType, "mode Sample: ", self.sample
-        print(self.message)
-
-        data = self.connector.getData(self.sample)
-
-        if data is None :
-            return None
-
-        if not isinstance(data, gpd.GeoDataFrame):
-            if (GeomUtil.getIsGeo(self, dataframe=data)):
-                data = GeomUtil.transformToGeoDf(self,dataframe=data)
-            else:
-                data = DataUtils.dataCleaner(self, data)
-        self.setData(data)
-        return self.data
-
-    def setData(self, data):
-        if self.sample_or_full_from_cache == SAMPLE and self.sample:
-            self.sample_data = data
-            self.data = self.sample_data
-        elif self.sample_or_full_from_cache == FULL and not self.sample:
-            self.full_data = data
-            self.data = self.full_data
-
-    def toSampleOnly(self):
-        self.sample_or_full_from_cache = SAMPLE
-        self.sample = True
-
-    def toFullData(self):
-        self.sample_or_full_from_cache = FULL
-        self.sample = False
-
-    def disconnect(self):
-        self.connector.disconnect()
-        self.caching_in_progress = False
 
 
 class PsudRestApi(Source):
+
+    url = param.String(doc="URL of the REST endpoint to monitor.")
+
+    def __init__(self, **params):
+        super().__init__(**params)
+
+    source_type = 'psud'
     baseUrl = BASE_URL.__getitem__(0)[1]
     #endPointUrl = ""
     extraParams = {}
 
-    def __init__(self, url, extraParams,jossoSession):
-        self.jossoSession = jossoSession
-        self.endPointUrl = url
-        self.extraParams = extraParams
-        self.totalNbEntity = 0
-        self.nbEntityLoaded = 0
-        self.nbRequest = 1
+   #def __init__(self, url, extraParams,jossoSession):
+   #    self.jossoSession = jossoSession
+   #    self.endPointUrl = url
+   #    self.extraParams = extraParams
+   #    self.totalNbEntity = 0
+   #    self.nbEntityLoaded = 0
+   #    self.nbRequest = 1
 
     def disconnect(self):
         pass
 
-    def getData(self, sampleOnly):
+    def get_schema(self, table=None):
+        if table:
+            cat = self.cat[table].to_dask()
+            return get_dataframe_schema(cat)['items']['properties']
+        else:
+            return {name: get_dataframe_schema(cat.to_dask())['items']['properties']
+                    for name, cat in self.cat.items()}
+
+    @cached
+    def get(self, table, **query):
+
+        sampleOnly= True
 
 
         url = self.endPointUrl
@@ -282,65 +209,3 @@ class PsudRestApi(Source):
         self.nbEntityLoaded += data.shape[0]
 
         return data
-
-class PsudGeoCat():
-    def __init__(self):
-        return
-
-
-class PsudDatabase():
-
-    def __init__(self, dataBaseConnection, table, whereClause, jossoSession):
-        self.jossoSession = jossoSession
-        self.nbRequest = 1
-        self.totalNbEntity = 0
-        self.nbEntityLoaded = 0
-
-        self.database = EXTERNE_DATABASES.get(dataBaseConnection)
-        self.extraParams = whereClause
-
-        user = jossoSession.login.split('@')[0]
-        password = jossoSession.password
-        host = self.database.get('HOST')
-        namedb = self.database.get('NAME')
-
-        url = 'postgresql://{}:{}@{}:5432/{}'.format(user,password,host,namedb)
-
-        self.engine = create_engine(url)
-
-
-
-        self.table = table
-        self.whereClause = whereClause
-        self.conn = None
-
-
-    def getData(self, sampleOnly):
-        # self.conn = psycopg2.connect(host=self.database.get('HOST'),
-        #                             database=self.database.get('NAME'),
-        #                             user=self.database.get('USER'),
-        #                             password=self.database.get('PASSWORD'))
-        query = "SELECT * from {} {}".format(self.table, self.whereClause)
-
-        print("SQL query Log : {}".format(query))
-
-        dataframe = pd.read_sql_query(query, con=self.engine)
-
-        self.totalNbEntity = dataframe.shape[0]
-        self.nbEntityLoaded = dataframe.shape[0]
-
-        return dataframe
-
-    def disconnect(self):
-        self.closeConnection()
-        pass
-
-    def closeConnection(self):
-        if self.conn is not None:
-            self.conn.close()
-            print('Database connection closed.')
-
-
-class csvFile():
-    def __init__(self):
-        return

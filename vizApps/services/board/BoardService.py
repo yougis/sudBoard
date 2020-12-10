@@ -1,10 +1,11 @@
 import panel as pn
-import param
 from vizApps.domain.Board import BoardEntity
 from vizApps.domain.Trace import TraceEntity
 import vizApps.services.viz.VizInstanceService as VizConstructor
 from vizApps.services.DataConnectorSevice import ConnectorInterface, SAMPLE, FULL
+from vizApps.services.lumen.lumenService import LumenDashboard
 import os
+
 
 def getApp(doc):
     vizAppList = getVizAppList(doc)
@@ -19,6 +20,64 @@ def getApp(doc):
 def tabSelectioncallback(target,event):
     target.object = event
 
+def getAppLumenMode(doc):
+    os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+    layout = pn.Column()
+
+    layout.server_doc(doc)
+
+
+def getLumenDashBoard(doc):
+    os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
+
+    boardId = doc.session_context.request.cookies["board_id"]
+    sessionId = doc.session_context.request.cookies['session_id']
+    lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=sessionId)
+    if lumenDashBord:
+        return lumenDashBord.pop()
+    else:
+        return LumenDashboard(board=boardId, sessionId=sessionId)
+
+def getLumenTemplate(doc):
+    return getLumenDashBoard(doc).dashBoard.template
+
+
+def getMainLumenEditor(doc):
+
+    template = getLumenTemplate(doc)
+    layout = template.main.objects[0]
+    layout.server_doc(doc)
+
+
+def getHeaderLumenEditor(doc):
+    template = getLumenTemplate(doc)
+    layout = template.header.objects[0]
+    layout.append(template._js_area)
+    layout.server_doc(doc)
+
+def getSideBarLumenEditor(doc):
+    template = getLumenTemplate(doc)
+    layout = template.sidebar.objects[0]
+    #template._js_area.server_doc(doc)
+    layout.server_doc(doc)
+
+def getModalLumenEditor(doc):
+    template = getLumenTemplate(doc)
+    layout = template.modal.objects[0]
+    #template._js_area.server_doc(doc)
+    layout.server_doc(doc)
+
+def getJsAreaLumenEditor(doc):
+    template = getLumenTemplate(doc)
+    layout = template._js_area
+    layout.server_doc(doc)
+
+
+def getBusyIndicatorLumenEditor(doc):
+    template = getLumenTemplate(doc)
+    layout = template.busy_indicator
+    layout.server_doc(doc)
 
 def getAppEditMode(doc):
     vizAppList = getVizAppList(doc)
