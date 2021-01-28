@@ -4,21 +4,8 @@
   <div class="mdc-drawer__content">
     <div class="mdc-list">
     {{ sidebar|safe }}
-      {% include "studio/trace_manager.html" %}
-      {% block action %}
-<form action="{% block action_name %}{% endblock %}" method="post">
-    {% csrf_token %}
-    <div class="sidebar_item--single">
-    {% block action_input %}
-
-    <button type="submit" name="addData"> + Données </button>
-    <button type="submit" name="save">Enregistrer</button>
-
-
-    {% endblock %}
-    </div>
-</form>
-{% endblock %}
+      {% include "board/view_manager.html" %}
+      {% include "board/board_actions.html" %}
 
     </div>
   </div>

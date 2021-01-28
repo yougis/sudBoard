@@ -5,7 +5,7 @@ import json
 import geopandas as gpd
 from vizApps.Utils.dataUtils import DataUtils
 from vizApps.Utils.geomUtils import GeomUtil
-from lumen.sources.base import  Source
+from lumen.sources import  Source
 
 from sqlalchemy import create_engine
 

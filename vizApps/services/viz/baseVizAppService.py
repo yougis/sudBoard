@@ -1,4 +1,5 @@
 import param
+import panel as pn
 import holoviews as hv
 import hvplot.pandas
 from holoviews import Overlay, NdOverlay
@@ -16,12 +17,6 @@ from vizApps.services.DataConnectorSevice import LIMIT_PARAM, SAMPLE, FULL
 
 import time
 from holoviews.core import AttrTree
-
-
-from ..testDebug.testDebug import *
-
-
-
 
 executor = ThreadPoolExecutor(max_workers=2)
 EMPTY_PLOT = hv.Div("Click UPDATE to load!")

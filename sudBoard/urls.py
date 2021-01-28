@@ -19,6 +19,7 @@ from django.urls import path
 from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from vizApps.services.board import BoardService
 from vizApps.services.dataSource import dataLoaderService
+from vizApps.services.lumen.view import viewService
 
 from vizApps.services.viz import VizService
 
@@ -38,6 +39,7 @@ urlpatterns = [
 
 bokeh_apps = [
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getApp),
+
     autoload(f"^lumen/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppLumenMode),
     autoload(f"^studio-lumen/board/modal/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getModalLumenEditor),
     autoload(f"^studio-lumen/board/main/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getMainLumenEditor),
@@ -45,9 +47,14 @@ bokeh_apps = [
     autoload(f"^studio-lumen/board/sidebar/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getSideBarLumenEditor),
     autoload(f"^studio-lumen/board/js_area/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getJsAreaLumenEditor),
     autoload(f"^studio-lumen/board/busy_indicator/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getBusyIndicatorLumenEditor),
+    autoload(f"^studio-lumen/board/location/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getLocationLumenEditor),
+    autoload(f"^studio-lumen/board/viewcreator/(?P<slug>[-a-zA-Z0-9_]+)/", viewService.getAppViewCreator),
 
     autoload(f"^studio/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppEditMode),
     autoload(f"^studio/dataloader/", dataLoaderService.getAppDataLoader),
+    autoload(f"^studio/viewcreator/", viewService.getAppViewCreator),
+    #autoload(f"^studio/viewcreator/", dataLoaderService.getAppDataLoader),
+
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),
 ]
 

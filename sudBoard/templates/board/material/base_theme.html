@@ -1,0 +1,68 @@
+
+{% include "board/material/ressources.html" %}
+
+{% block contents %}
+
+<div class="mdc-typography" id="container">
+
+    {% include "board/material/header.html" %}
+
+{% block sidebar %}
+
+<!-- The sidebar -->
+
+{% include "board/material/sidebar.html" %}
+
+
+{% endblock %}
+
+
+
+<div class="mdc-drawer-app-content mdc-top-app-bar--fixed-adjust">
+{% block  body_message %}
+      {% include "studio/message.html" %}
+{% endblock %}
+
+{% include "board/material/main.html" %}
+
+
+{% include "board/material/modal.html" %}
+</div>
+
+
+</div>
+
+{{ js_area|safe }}
+{{ location|safe }}
+{% endblock %}
+
+{% block body_js %}
+
+{% if nav %}
+<script>
+  var drawer = mdc.drawer.MDCDrawer.attachTo(document.querySelector('.mdc-drawer'));
+  var topAppBar = mdc.topAppBar.MDCTopAppBar.attachTo(document.getElementById('header'));
+  topAppBar.setScrollTarget(document.getElementById('main'));
+  topAppBar.listen('MDCTopAppBar:nav', function() {
+    drawer.open = !drawer.open;
+    // Ensure bokeh layout recomputes layout
+    window.dispatchEvent(new Event('resize'));
+  });
+
+  drawer.open = true;
+  {% endif %}
+
+  var modal = document.getElementById("pn-Modal");
+  var span = document.getElementById("pn-closeModal");
+
+  span.onclick = function() {
+    modal.style.display = "none";
+  }
+
+  window.onclick = function(event) {
+    if (event.target == modal) {
+      modal.style.display = "none";
+    }
+  }
+</script>
+{% endblock body_js %}

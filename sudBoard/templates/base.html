@@ -11,23 +11,27 @@
     <title>{% block title %}SudBoard{% endblock title %}</title>
     {% endblock meta %}
 
-    {% block head_css %}
-    <link rel="stylesheet" href="{% static "style.css" %}">
-    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css"%}">
+
 
     {% block resources %}
         {% block css_resources %}
+        <link rel="stylesheet" href="{% static "style.css" %}">
+        <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css"%}">
+        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css" integrity="sha384-50oBUHEmvpQ+1lW4y57PTFmhCaXp0ML5d60M1M7uH2+nqUivzIebhndOJK28anvf" crossorigin="anonymous">
         {{ bokeh_css }}
+
         {% endblock css_resources %}
+
+
+        {% block js_resources %}
+         <script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
+         <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
+        {% endblock js_resources %}
 
     {% endblock %}
 
 
-    {% endblock head_css %}
-    {% block head_js %}
-     <script type="text/javascript" src="https://code.jquery.com/jquery-3.4.1.slim.min.js"></script>
-     <script type="text/javascript" src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js"></script>
-    {% endblock head_js %}
+
     {% block postamble %}{% endblock %}
 
   </head>
@@ -36,12 +40,17 @@
 
 
   <body id="{% block body_id %}{% endblock body_id %}" class="{% block body_class %}{% endblock body_class %}">
-  {% block  contents %}
+  {% block theme_contents %}
+    {% block  contents %}
 
-  {% block data_loader%}
-  {% endblock %}
+    {% block data_loader %}
+    {% endblock %}
+    {% block view_creator %}
+    {% endblock %}
 
-  {% endblock contents %}
+    {% endblock contents %}
+  {% endblock theme_contents %}
+
   {% block footer %}
   {% endblock footer %}
 

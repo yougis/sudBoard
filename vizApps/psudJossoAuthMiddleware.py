@@ -28,8 +28,9 @@ class PsudJossoAuthMiddleware(MiddlewareMixin):
         return response
 
     def process_request(self,request):
-        editParam = request.GET.get('edit')
-        lumenParam = request.GET.get('lumen')
+
+        parametersList = {**request.GET}
+
 
         if request.COOKIES.get('JOSSO_SESSIONID'):
             session_id = request.COOKIES.get('JOSSO_SESSIONID')
@@ -46,7 +47,7 @@ class PsudJossoAuthMiddleware(MiddlewareMixin):
             if not josso_session.valid:
                 request.COOKIES["JOSSO_SESSIONID"] = ''
                 request.COOKIES["usernameLoginJOSSO"] = ''
-                redirect_uri = self.get_redirect_check_uri(request,editParam,lumenParam)
+                redirect_uri = self.get_redirect_check_uri(request,parametersList)
                 return redirect(self.getlogOutUrl(redirect_uri))
             return None
         if request.GET.get('josso_assertion_id'):
@@ -57,23 +58,19 @@ class PsudJossoAuthMiddleware(MiddlewareMixin):
                 request.COOKIES['usernameLoginJOSSO'] = josso_data['username']
                 return None
             else:
-                redirect_uri = self.get_redirect_check_uri(request, editParam, lumenParam)
+                redirect_uri = self.get_redirect_check_uri(request, parametersList)
                 formulaireJossoUrl = self.getAuthFormUrl(redirect_uri)
                 return redirect(formulaireJossoUrl)
 
         else:
-            redirect_uri = self.get_redirect_check_uri(request,editParam, lumenParam)
+            redirect_uri = self.get_redirect_check_uri(request,parametersList)
             formulaireJossoUrl = self.getAuthFormUrl(redirect_uri)
             return redirect(formulaireJossoUrl)
 
-    def get_redirect_check_uri(self,request,editParam, lumenParam):
-        editParam=""
-        lumenParam = ""
-        if editParam:
-            editParam = "edit=True"
-        if lumenParam:
-            lumenParam= "lumen=True"
-        redirect_uri = "{domain}{path}?{editP}".format(domain=self.base_url, path=request.path,editP=editParam,lumenP=lumenParam)
+    def get_redirect_check_uri(self,request,parametersList):
+        params = '&'.join(['{}={}'.format(k,','.join(v)) for k,v in  parametersList.items()])
+
+        redirect_uri = "{domain}{path}?{params}".format(domain=self.base_url, path=request.path,params=params)
         return redirect_uri
 
     def get_base_url(self):

@@ -1,8 +1,9 @@
 from django.contrib.postgres.fields import JSONField
 from django.db import models
+from vizApps.domain.Board import BoardEntity
+
 from vizApps.services.DataConnectorSevice import ConnectorInterface, SAMPLE, FULL
 from vizApps.Utils.geomUtils import GeomUtil
-from vizApps.domain.Board import BoardEntity
 from vizApps.domain.Viz import  VizEntity
 from numpy import random
 

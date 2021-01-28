@@ -3,6 +3,12 @@ from django.contrib import admin
 from vizApps.domain.Board import BoardEntity
 from vizApps.domain.Trace import TraceEntity
 from vizApps.domain.Viz import VizEntity
+from vizApps.domain.lumen.view import ViewEntity
+from vizApps.domain.lumen.target import TargetEntity
+from vizApps.domain.lumen.filter import FilterEntity
+from vizApps.domain.lumen.transform import TransformEntity
+
+
 
 
 class BoardAdmin(admin.ModelAdmin):
@@ -27,4 +33,25 @@ class TraceEntityAdmin(admin.ModelAdmin):
         return ";\n".join([v.title for v in obj.vizListe.all()])
 
 
-admin.site.register(TraceEntity,TraceEntityAdmin)
+
+class TargetEntityAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(TargetEntity,TargetEntityAdmin)
+
+
+class ViewEntityAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(ViewEntity,ViewEntityAdmin)
+
+
+class FilterEntityAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(FilterEntity,FilterEntityAdmin)
+
+class TransformEntityAdmin(admin.ModelAdmin):
+    pass
+
+admin.site.register(TransformEntity,TransformEntityAdmin)

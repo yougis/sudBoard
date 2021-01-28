@@ -1,0 +1,12 @@
+<form action="{% block action_name %}{% endblock %}" method="post">
+    {% csrf_token %}
+<button type="submit" name="createView"><i class="fa fa-plus" aria-hidden="true"></i>  Créer une vue</button>
+</form>
+
+<ul>
+    {% for target in targets %}
+    {% for view in target.viewentity_set.all %}
+        <li>{{ view.name }}</li>
+    {% endfor %}
+    {% endfor %}
+</ul>

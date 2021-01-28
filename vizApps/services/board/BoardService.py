@@ -33,20 +33,22 @@ def getLumenDashBoard(doc):
 
     boardId = doc.session_context.request.cookies["board_id"]
     sessionId = doc.session_context.request.cookies['session_id']
-    lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=sessionId)
+    lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=sessionId+str(boardId))
     if lumenDashBord:
         return lumenDashBord.pop()
     else:
         return LumenDashboard(board=boardId, sessionId=sessionId)
 
 def getLumenTemplate(doc):
-    return getLumenDashBoard(doc).dashBoard.template
+    template=getLumenDashBoard(doc).dashBoard.template
+    return template
 
 
 def getMainLumenEditor(doc):
 
     template = getLumenTemplate(doc)
     layout = template.main.objects[0]
+    #layout = getLumenDashBoard(doc).dashBoard.layout()
     layout.server_doc(doc)
 
 
@@ -77,6 +79,12 @@ def getJsAreaLumenEditor(doc):
 def getBusyIndicatorLumenEditor(doc):
     template = getLumenTemplate(doc)
     layout = template.busy_indicator
+    layout.server_doc(doc)
+
+def getLocationLumenEditor(doc):
+    template = getLumenTemplate(doc)
+    layout = template.location.objects[0]
+    # template._js_area.server_doc(doc)
     layout.server_doc(doc)
 
 def getAppEditMode(doc):

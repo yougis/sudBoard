@@ -1,0 +1,13 @@
+{% block sidebar %}
+
+<div class="row" id="content">
+    {% if nav %}
+    <div class="sidenav" id="sidebar">
+      <ul class="nav flex-column">
+        {{ sidebar|safe }}
+        {% include "studio/trace_manager.html" %}
+        {% include "board/board_actions.html" %}
+      </ul>
+    </div>
+    {% endif %}
+{% endblock sidebar %}

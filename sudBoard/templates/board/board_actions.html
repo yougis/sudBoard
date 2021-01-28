@@ -1,0 +1,11 @@
+{% block action %}
+<form action="{% block action_name %}{% endblock %}" method="post">
+    {% csrf_token %}
+    <div>
+        <button type="submit" name="addData"><i class="fas fa-link"></i> Connecter une source</button>
+
+        <button type="submit" name="save"><i class="fas fa-save"></i> Enregistrer</button>
+
+    </div>
+</form>
+{% endblock %}

@@ -1,0 +1,20 @@
+{% block css_resources %}
+{{ block.super }}
+<!-- Bootstrap -->
+<link rel="stylesheet" href="{{ template_resources.css.bootstrap }} }}">
+
+<link rel="stylesheet" href="{{ template_resources.css.base }}">
+<link rel="stylesheet" href="{{ template_resources.css.theme }}">
+{% endblock css_resources %}
+
+
+{% block js_resources %}
+{{ block.super }}
+<!-- React-grid-layout script -->
+<script src="{{ template_resources.js.react }}" crossorigin></script>
+<script src="{{ template_resources.js.react-dom }}" crossorigin></script>
+<script src="{{ template_resources.js.babel }}" crossorigin></script>
+<script src="{{ template_resources.js.react-grid }}" crossorigin></script>
+
+
+{% endblock js_resources %}
