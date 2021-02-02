@@ -1,5 +1,26 @@
 from intake_sql import SQLSourceManualPartition, SQLSourceAutoPartition
+from cartopy import crs
+
+from intake_geopandas import PostGISSource
 import yaml
+
+postgisAgb = PostGISSource(uri = 'postgresql://admsig@pgsql2-prod.province-sud.prod:5432/ddr',
+                        sql_expr='select * from agb.autorisation_ouvrage_eau',
+                        table='agb.autorisation_ouvrage_eau',
+                        geopandas_kwargs=None,
+                        metadata=None)
+
+postgisAgb.name = 'geom_autorisation_ouvrage_eau'
+postgisAgb.description = 'Donnée spatiale Autorisation d\'ouvrage eau'
+
+postgisAgb.metadata['plots'] = {'graphique_default':
+                              {
+                                  'tiles' :'EsriTerrain',
+                                  'hover_cols':'all',
+                                  'projetction':crs.GOOGLE_MERCATOR,
+                                  'height': 600,
+                               }
+                          }
 
 pg = SQLSourceManualPartition(uri='postgresql://admsig@pgsql2-prod.province-sud.prod:5432/ddr',
                               sql_expr='select * from agb.autorisation_ouvrage_eau',
@@ -70,4 +91,5 @@ agb2.metadata['plots'] = {'graphique_default':
 pg = [agb1,agb2]
 
 with open(r'vizApps/services/intake/catalog.yml', 'w') as file:
-    yaml.dump({'sources': {**agb1._yaml(with_plugin=True)['sources'], **agb2._yaml(with_plugin=True)['sources']}}, file)
+    yaml.dump({'sources': {**postgisAgb._yaml(with_plugin=True)['sources'],**agb1._yaml(with_plugin=True)['sources'], **agb2._yaml(with_plugin=True)['sources']}}, file)
+

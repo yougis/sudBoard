@@ -18,7 +18,7 @@ def getAppViewCreator(doc):
     pipeline.add_stage("Séléction d'une source de donnée", choiceSource)
     pipeline.add_stage("Transformer la donnée", stepTransform)
     pipeline.add_stage("Configuration du graphique", StepConfiguration(lumenDashboard=lumenDashboard))
-   # newTarget = Monitor(name='Nouveau moniteur')
+    # newTarget = Monitor(name='Nouveau moniteur')
 #
    # target_list.append(newTarget)
     pipeline.add_stage("Terminer", StepSaveView(lumenDashboard=lumenDashboard, targets=[t for t in target_list], url=doc.session_context.request.headers['referer']))

@@ -51,14 +51,14 @@ widgetsDic = {
     "aggregate": [pn.widgets.Select(name='by'),
                   pn.widgets.MultiSelect(name='columns'),
                   pn.widgets.Select(name='method', options=aggregateMethods),
-                  pn.widgets.Checkbox(name='dropna'),
-                  pn.widgets.TextInput(name='kwargs',value="unique")],
+                  pn.widgets.Checkbox(name='dropna')],
     "sort": [pn.widgets.Select(name='by'),
              pn.widgets.Checkbox(name='ascending')],
     "columns": [pn.widgets.MultiSelect(name='columns')],
     
     # Views widgets
-    "string" : [pn.widgets.Select(name='field')],
+    "string" : [pn.widgets.Select(name='field'),
+                pn.widgets.TextInput(name='font_size',value='24pt')],
     "indicator" : [pn.widgets.Select(name='indicator',options=['string','number','progress','gauge','dial']),
                    pn.widgets.TextInput(name='label',placeholder='indiquer un titre pour le widget'),
                    pn.widgets.Select(name='field')],
@@ -217,16 +217,18 @@ class ChoiceSource(param.Parameterized):
 
     @param.depends('liste_des_sources')
     def view(self):
-        if self.liste_des_sources:
-            layout = pn.Row()
-            plot = None
-
+        layout = pn.Row()
+        plot = None
+        if self.liste_des_sources and self.liste_des_sources.classname != 'intake_geopandas.geopandas.PostGISSource':
             if self.liste_des_sources.hvplot() != None:
                 plot = self.liste_des_sources.hvplot.graphique_default()
                 layout.append(pn.Row(plot,sizing_mode='stretch_width'))
             layout.append(pn.Row(
                 hv.Table(self.liste_des_sources._dataframe, sizing_mode='stretch_width').opts(height=600, width=600)))
             return layout
+        elif self.liste_des_sources.classname == 'intake_geopandas.geopandas.PostGISSource':
+            self.liste_des_sources._dataframe.hvplot(geo=True, tiles=True)
+            ...
         else:
             layout = pn.Column(pn.pane.HTML(f'Aucun catalogue disponible'), sizing_mode='stretch_width')
             return layout
