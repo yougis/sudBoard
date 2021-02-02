@@ -60,7 +60,9 @@ def getHeaderLumenEditor(doc):
 
 def getSideBarLumenEditor(doc):
     template = getLumenTemplate(doc)
-    layout = template.sidebar.objects[0]
+    layout = pn.Column(sizing_mode='stretch_width')
+    layout.append(template.sidebar.objects[0])
+    layout.append(getLumenDashBoard(doc).panel())
     #template._js_area.server_doc(doc)
     layout.server_doc(doc)
 
@@ -85,6 +87,10 @@ def getLocationLumenEditor(doc):
     template = getLumenTemplate(doc)
     layout = template.location.objects[0]
     # template._js_area.server_doc(doc)
+    layout.server_doc(doc)
+
+def getAppBoardUpdateConfig(doc):
+    layout = getLumenDashBoard(doc).panel()
     layout.server_doc(doc)
 
 def getAppEditMode(doc):
@@ -115,6 +121,7 @@ def getAppEditMode(doc):
         pass
 
     layout.server_doc(doc)
+
 
 def getVizAppList(doc):
     # recherche de l'entité Viz contenant les informations permettant de construire dynamiquement le panel

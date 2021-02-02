@@ -25,7 +25,7 @@ class TargetEntity(models.Model):
     def save(self, *args, **kwargs):
         self.saveSpec()
         super().save(*args, **kwargs)
-        self.board.save()
+
 
     def saveSpec(self):
         views = self.get_spec()['views']

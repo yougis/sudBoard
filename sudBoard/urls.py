@@ -30,8 +30,6 @@ app_name = 'vizApps'
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('board/clean_cache/', BoardController.cleanCache),
-    path(r'board/', BoardController.boardList),
-    path(r'board/new', BoardController.create),
     path(r'board/<slug:slug>/', BoardController.routeAction, name= 'board'), #[DELETE:delete, GET:search, POST:update, PUT:update]
     path(r'board/<slug:boardSlug>/vizentity/<slug:vizSlug>', BoardController.getBoardVizElementFromSlug), #[DELETE:delete, GET:search, POST:update, PUT:update]
 
@@ -48,11 +46,11 @@ bokeh_apps = [
     autoload(f"^studio-lumen/board/js_area/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getJsAreaLumenEditor),
     autoload(f"^studio-lumen/board/busy_indicator/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getBusyIndicatorLumenEditor),
     autoload(f"^studio-lumen/board/location/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getLocationLumenEditor),
-    autoload(f"^studio-lumen/board/viewcreator/(?P<slug>[-a-zA-Z0-9_]+)/", viewService.getAppViewCreator),
 
     autoload(f"^studio/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppEditMode),
-    autoload(f"^studio/dataloader/", dataLoaderService.getAppDataLoader),
-    autoload(f"^studio/viewcreator/", viewService.getAppViewCreator),
+    autoload(f"^studio/boardconfig/", BoardService.getAppBoardUpdateConfig),
+    autoload(f"^studio-pipeline/dataloader/", dataLoaderService.getAppDataLoader),
+    autoload(f"^studio-pipeline/viewcreator/", viewService.getAppViewCreator),
     #autoload(f"^studio/viewcreator/", dataLoaderService.getAppDataLoader),
 
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),

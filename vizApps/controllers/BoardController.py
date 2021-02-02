@@ -47,6 +47,9 @@ class BoardController():
         if(request.method=="POST"):
             editMode = True
 
+            if 'updateBoardConfig' in request.POST:
+                return BoardController.getBoardUpdateConfigModule(request, slug=slug)
+
             if 'createView' in request.POST:
                 return BoardController.getViewCreatorModule(request, slug=slug)
 
@@ -78,14 +81,21 @@ class BoardController():
 
         return BoardController.getBoardAppFromBoardSlug(request=request, slug=slug, message=message, params=params)
 
-    def getViewCreatorModule(request, **kwargs):
-
+    def getBoardUpdateConfigModule(request, **kwargs):
         base_uri = request.build_absolute_uri(location='/')
 
         template = None
-        endPoint = 'studio/viewcreator/'
+        endPoint = 'studio/boardconfig/'
         # on récupère l'url de l'application du Board du serveur Bokeh
         bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + endPoint
+
+    def getViewCreatorModule(request, **kwargs):
+
+        base_uri = request.build_absolute_uri(location='/')
+        endPoint = "studio-pipeline/viewcreator/"
+
+        template = None
+
 
         session_id = request.COOKIES.get('session_id')
         if session_id == None:
@@ -95,13 +105,15 @@ class BoardController():
         headers = dict(headers) if headers else {}
 
         headers['session'] = request.COOKIES.get('crsftoken')
-        board_id = request.COOKIES.get('bord_id')
+        board_id = request.COOKIES.get('board_id')
         board = BoardEntity.objects.get(id=board_id)
 
         lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=session_id +board_id)
 
         if lumenDashBord:
             lumenDashBord = lumenDashBord.pop()
+        else:
+            lumenDashBord = LumenDashboard(board=board.id, sessionId=session_id)
 
         template = lumenDashBord.dashBoard.template
         doc = template._init_doc()
@@ -132,6 +144,12 @@ class BoardController():
             script = BoardController.createBokehScript(model, session_id, headers, bokeh_server_url)
             server_script_Dict[scriptName[0]] = script
 
+        # on ajoute le script de la pipeline
+        bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + endPoint
+        pipeline = server_session(None, session_id=session_id, url=bokeh_server_url,
+                                       headers=headers)
+        server_script_Dict['main']=pipeline
+
         context = {
 
             "boardName": board.name,
@@ -143,16 +161,16 @@ class BoardController():
         }
 
         # Création du context pour le template Jinja
-        context = {**server_script_Dict}
+        context = {**context,**template_variables,**server_script_Dict}
 
         #template = render(request, 'view/view_creator.html', context)
-        template = render(request, 'view/view_creator.html', context)
+        template = render(request, 'board/board_edit.html', context)
 
         return template
 
     def getDataLoaderModule(request, editMode=True):
         template = None
-        endPoint = 'studio/dataloader/'
+        endPoint = 'studio-pipeline/dataloader/'
         # on récupère l'url de l'application du Board du serveur Bokeh
         bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + endPoint
 
@@ -184,9 +202,22 @@ class BoardController():
         message = kwargs.get('message')
         request = kwargs.get('request')
         base_uri = request.build_absolute_uri(location='/')
+        edit = params['editMode']
 
         # on cherche l'identifiant de l'objet BoardEntity à partir du Slug
         board = BoardEntity.objects.get(slug=slug)
+        targets = board.targetentity_set.all()
+
+        # Création du context pour le template Jinja
+        context = {
+            "message": message,
+            "boardName": board.name,
+            "boardSlug": board.slug,
+            "board": board,
+            "targets": targets,
+            "extraParams": request.GET
+        }
+
         headers = request.headers
         headers = dict(headers) if headers else {}
 
@@ -214,6 +245,12 @@ class BoardController():
         else:
             lumenDashBord = LumenDashboard(board=board.id, sessionId=session_id)
 
+
+
+        #if len(targets)==0 and edit:
+        #    return render(request, 'board/board_edit.html',context)
+
+
         template = lumenDashBord.dashBoard.template
         doc=template._init_doc()
         template_variables = doc.template_variables
@@ -222,16 +259,16 @@ class BoardController():
         listeOfBokehModel = [obj for obj in root if len(obj.tags) > 0]
 
         # on va chercher les composants Panels qui ont des tags définis
-        nav = BoardController.getBokehModelByTag(listeOfBokehModel,'nav').pop()
-        modal = BoardController.getBokehModelByTag(listeOfBokehModel, 'modal').pop()
-        header = BoardController.getBokehModelByTag(listeOfBokehModel, 'header').pop()
-        main = BoardController.getBokehModelByTag(listeOfBokehModel, 'main').pop()
+        nav = BoardController.getBokehModelByTag(listeOfBokehModel,'nav')
+        modal = BoardController.getBokehModelByTag(listeOfBokehModel, 'modal')
+        header = BoardController.getBokehModelByTag(listeOfBokehModel, 'header')
+        main = BoardController.getBokehModelByTag(listeOfBokehModel, 'main')
         listeOfBokehModelWithNoTags = [obj for obj in root if len(obj.tags) == 0]
 
         # on va chercher les autres composants Panels qui n'ont de tags définis
-        js_area = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'js_area'].pop()
-        busy_indicator = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'busy_indicator'].pop()
-        location = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'location'].pop()
+        js_area = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'js_area']
+        busy_indicator = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'busy_indicator']
+        location = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'location']
 
 
         # génération des scripts
@@ -241,22 +278,16 @@ class BoardController():
 
         for scriptName in listeScriptToCreate:
             model = scriptName[1]
-            bokeh_server_url = BoardController.endPointConstructor(None,  slug, scriptName[0], base_uri, **params)
+            if len(model) == 0:
+                pass
+            else:
+                model = model.pop()
+                bokeh_server_url = BoardController.endPointConstructor(None,  slug, scriptName[0], base_uri, **params)
+                script = BoardController.createBokehScript(model, session_id, headers, bokeh_server_url)
+                server_script_Dict[scriptName[0]] = script
 
-            script = BoardController.createBokehScript(model, session_id, headers, bokeh_server_url)
-            server_script_Dict[scriptName[0]] = script
 
 
-        # Création du context pour le template Jinja
-        context = {
-            "message": message,
-            "boardName": board.name,
-            "boardSlug": board.slug,
-            "board": board,
-            "traces" : TraceEntity.objects.filter(board=board),
-            "targets": TargetEntity.objects.filter(board=board),
-            "extraParams": request.GET
-        }
         contextWithlumenDashboard = {**context,**template_variables,**server_script_Dict}
 
         if (edit == 'True'):
@@ -293,27 +324,9 @@ class BoardController():
         return response
 
 
-
     def cleanCache(self):
         response = BoardService.clearCache()
         return HttpResponse(response)
 
-    def boardList(request):
-        pass
-
-    def create(request):
-        pass
-
-    def save(request):
-        board = BoardService.getBoard(request.boardId)
-        params = request.parameters
-        BoardService.save(board, params)
-        return
-
-    def addData(request):
-        #board = BoardService.getBoard(request.boardId)
-        #params = request.parameters
-        #BoardService.save(board, params)
-        return HttpResponse()
 
 

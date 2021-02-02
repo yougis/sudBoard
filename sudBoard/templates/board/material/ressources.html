@@ -1,10 +1,11 @@
+{% load  static %}
 {% block css_resources %}
 
 
-<link href="{{ template_resources.css.material }}" rel="stylesheet">
+<link href="/{{ template_resources.css.material }}" rel="stylesheet">
 
-<link rel="stylesheet" href="{{ template_resources.css.base }}">
-<link rel="stylesheet" href="{{ template_resources.css.theme }}">
+<link rel="stylesheet" href="/{{ template_resources.css.base }}">
+<link rel="stylesheet" href="/{{ template_resources.css.theme }}">
 <link href="https://fonts.googleapis.com/css?family=Roboto:300,400,500" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css?family=Material+Icons&display=block" rel="stylesheet">
 
@@ -13,7 +14,7 @@
 
 {% block js_resources %}
 
-<script src="{{ template_resources.js.material }}"></script>
+<script src="/{{ template_resources.js.material }}"></script>
 
 
 {% endblock js_resources %}

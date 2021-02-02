@@ -46,15 +46,19 @@ class BoardEntity(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = self._get_unique_slug()
-        self.saveConfig()
+        self.saveConfig(kwargs.pop('conf') if kwargs.get('conf') else None)
         super().save(*args, **kwargs)
 
-    def saveConfig(self):
+    def saveConfig(self, conf):
         targets = [target.specYaml for target in self.targetentity_set.all()]
-        conf = dict(self.__dict__)
-        del conf['logo']
-        del conf['config']
-        del conf['_state']
+
+        if not conf:
+            conf = {'layout': 'grid',
+                    'ncols': 2,
+                    'template': 'material',
+                    'theme': 'default',
+                    'title': 'Nouveau DashBoard'
+                    }
 
         spec = SpecYamlCreator(config=conf,targets=targets)
         self.config = spec.to_yaml()

@@ -26,13 +26,6 @@ class ViewEntity(models.Model):
         if len(transforms)>0:
             self.specYaml['transforms'] = transforms
 
-        #if(self.target.name == "demo"):
-        #    p['table'] = 'autorisation_ouvrage_eau'
-
-        #spec = SpecYamlCreator(**spec)
-        #self.specYaml = spec.to_yaml()
-
-
     def __repr__(self):
         keyVals = ", ".join(["{}={}".format(i[0], i[1]) for i in [v for v  in vars(self).items()]])
         return "%s(%s)" % ( self.__class__.__name__,keyVals)

@@ -1,5 +1,7 @@
 import os
 import yaml
+import panel as pn
+import param
 from lumen.dashboard import Dashboard
 from lumen.filters import ConstantFilter, Filter, WidgetFilter  # noqa
 from lumen.monitor import Monitor  # noqa
@@ -21,15 +23,35 @@ intakeSourceName = 'sql_auto'
 instancesList = []
 
 
-class LumenDashboard:
+class LumenDashboard(param.Parameterized):
+
+    title = param.String(label="Titre")
+    layout = param.ObjectSelector(label="Mise en page", objects=['grid','tabs','column'],default='grid')
+    ncols = param.Integer(label='Nombre de colonne', default=2)
+    theme = param.ObjectSelector(label="Theme", objects=['default','dark'], default='default')
+    template = param.String(default="material",precedence=-1)
+    logo = param.FileSelector()
+    specDoc = param.Parameter(precedence=-1)
+
     def __init__(self, **kwargs):
+        super(LumenDashboard, self).__init__(**kwargs)
         boardId=kwargs['board']
+        self.initialized = False
 
         self.board = BoardEntity.objects.get(id=boardId)
         self._session = kwargs.get('sessionId')+ str(boardId)
         self.specDoc = self.createSpecFromData()
-        self.dashBoard = Dashboard(specification=self.specDoc.name)
+
         instancesList.append(self)
+
+    @param.depends('specDoc', watch=True)
+    def updateSpec(self):
+        if hasattr(self, 'dashBoard'):
+            self.dashBoard.specification = self.specDoc.name
+            self.dashBoard._load_config(from_file=True)
+            self.dashBoard._reload()
+        else:
+            self.dashBoard = Dashboard(specification=self.specDoc.name)
 
     def createSpecFromData(self):
 
@@ -43,8 +65,6 @@ class LumenDashboard:
             with open(r'specYamlFile/dashboard_fake_{}.yml'.format(self._session), 'w') as file:
                 yaml.dump(specification.__dict__, file)
             return file
-
-
 
     def createFakeYaml(self):
         path = BASE_DIR + '/vizApps/services/intake/'
@@ -63,7 +83,6 @@ class LumenDashboard:
         ]
         specObj = SpecYamlCreator(config=config, targets=targets)
         return specObj
-
 
     def createSpecYaml(self):
         path = BASE_DIR + '/vizApps/services/intake/'
@@ -205,14 +224,6 @@ class LumenDashboard:
             #
         ]}
         sources = {}
-        # sources = {'sources':{'population':{'files': ['population.csv'], 'type': 'file'}}}
-        # sources = {
-        #    'sources':
-        #        {
-        #            'population1': {'files': ['population.csv'], 'type': 'file'},
-        #        }
-        # }
-
         target_new = {'targets': [
             {'title': 'Nouvelle donnée',
              "source": {'type': 'intake',
@@ -237,6 +248,39 @@ class LumenDashboard:
         with open(r'specYamlFile/nouveau_dashboard_default_config.yml', 'w') as file:
             yaml.dump(specification, file)
             return file
+
+    def view(self):
+        if not self.initialized:
+            config = yaml.load(self.dashBoard._yaml)['config']
+            self.title = config.get("title")
+            self.layout = config.get("layout")
+            self.ncols = config.get("ncols")
+            self.theme = config.get("theme")
+            self.template = config.get("template")
+            self.logo = config.get("logo")
+            self.initialized = True
+
+    def panel(self):
+        self.updateSpec()
+        layout = pn.Column(
+            pn.Param(
+                self.param,
+                #parameters=[],
+                widgets={
+                    #'title': pn.widgets.TextInput(placeholder="Indiquer le titre du DashBoard"),
+                    'logo': pn.widgets.FileInput(accept='.jpg,.png,.ico,.gif',name="Logo")},
+                show_name=False,
+                expand_button=False,
+                expand=False,
+                sizing_mode = "stretch_width"
+            ),
+            self.view,
+            margin=10,
+            css_classes=['panel-widget-box'],
+            sizing_mode='stretch_width'
+        )
+
+        return layout
 
     @classmethod
     def getinstancesBySessionId(cls, sessionId):

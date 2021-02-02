@@ -25,6 +25,7 @@ from lumen.util import get_dataframe_schema
 
 from lumen.dashboard import Dashboard # noqa
 from lumen.views import View, IndicatorView, StringView,  hvPlotView, Table, Download# noqa
+from lumen.transforms import Transform, Aggregate, Columns, Sort
 from hvplot.plotting.core import hvPlot
 
 from vizApps.services.DataConnectorSevice import ConnectorInterface, CONNECTOR_LIST, REST_API, DATABASE, FILE,  SAMPLE, FULL
@@ -36,16 +37,31 @@ from sudBoard.settings import BASE_DIR
 from vizApps.domain.lumen.target import TargetEntity
 from vizApps.domain.lumen.view import ViewEntity
 from vizApps.domain.lumen.filter import FilterEntity
+from vizApps.domain.lumen.transform import TransformEntity
 
 path = BASE_DIR + '/vizApps/services/intake/'
 
 viewTypeSupported = [StringView,IndicatorView,hvPlotView]
 
+transformTypeSupported = [Aggregate, Columns,Sort]
+aggregateMethods = ['sum','mean','max','min']
 widgetsDic = {
-    "string" : [pn.widgets.TextInput(name='text'), pn.widgets.Select(name='field')],
-    "indicator" : [pn.widgets.Select(name='indicator',options=['string','number','progress','gauge','dial'],label='nulisime'),
-                   pn.widgets.TextInput(name='label',value="this is label",placeholder='indiquer un titre pour le widget'),
-                   pn.widgets.Select(name='field', value="choix du field", options=['choix du field'])],
+    # Transforms widgets
+    
+    "aggregate": [pn.widgets.Select(name='by'),
+                  pn.widgets.MultiSelect(name='columns'),
+                  pn.widgets.Select(name='method', options=aggregateMethods),
+                  pn.widgets.Checkbox(name='dropna'),
+                  pn.widgets.TextInput(name='kwargs',value="unique")],
+    "sort": [pn.widgets.Select(name='by'),
+             pn.widgets.Checkbox(name='ascending')],
+    "columns": [pn.widgets.MultiSelect(name='columns')],
+    
+    # Views widgets
+    "string" : [pn.widgets.Select(name='field')],
+    "indicator" : [pn.widgets.Select(name='indicator',options=['string','number','progress','gauge','dial']),
+                   pn.widgets.TextInput(name='label',placeholder='indiquer un titre pour le widget'),
+                   pn.widgets.Select(name='field')],
     "hvplot" : [
         pn.widgets.Select(name='kind',options=hvPlot.__all__),
         pn.widgets.Select(name='x'),
@@ -58,12 +74,85 @@ widgetsDic = {
 
 # liste des prop à valeur variable
 widgetPropertiesToUpdate = {
+
+    # Transform widgets
+    "aggregate": ['by', 'columns'],
+    "sort": ['by'],
+    "columns": ['columns'],
+
+    # Views widgets
     'string': ['field'],
     'indicator': ['field','indicator'],
     'hvplot': ['x', 'y'],
     'table': [''],
     'download': ['']
 }
+
+
+def updateWidgets(type,panelWidgets, schema):
+    if type:
+        # initialisation des widgets
+        # ajuster les options des widgets à partir des données sources
+        # on initialise la valeur des param avec la valeur des widgets
+        # on affecte les valeurs  / options par défaut aux widgets
+
+        [widgetUpdater(w, {**dicMapping(w.name,schema), **dicMapping('*',schema)}) for w in panelWidgets if
+         w.name in widgetPropertiesToUpdate[type]]
+
+    else:
+        return pn.Column()
+
+
+
+def dicMapping (widgetName,schema):
+
+    dic = {
+        '*': {},
+        # Aggregate :
+        'method':{
+            'value': list([str(i) for i in aggregateMethods])[0],
+            'options': list([str(i) for i in aggregateMethods])},
+        'by': {
+            'value': list([str(i) for i in schema.keys()])[0],
+            'options': list([str(i) for i in schema.keys()])},
+        'columns': {
+            'value': list([str(i) for i in schema.keys()]),
+            'options': list([str(i) for i in schema.keys()])},
+        'indicator': {'value': 'string'},
+        'field': {
+            'value': list([str(i) for i in schema.keys()])[0],
+            'options': list([str(i) for i in schema.keys()])},
+        'x': {'options': list([str(i) for i in schema.keys()])},
+        'y': {'value': list([str(i) for i in schema.keys()])[0],
+              'options': list([str(i) for i in schema.keys()])}
+        }
+    return dic[widgetName]
+
+def dynamicParameters(paramObj, newWidgets):
+    for w in newWidgets:
+        if len([i for i in paramObj if i == str(w.name).lower()]) == 0:
+            paramObj._add_parameter(param_name=str(w.name).lower(), param_obj=param.Parameter())
+            paramObj.set_default(str(w.name).lower(), w.value)
+    return newWidgets
+
+
+def widgetWrapper(paramObj, viewType, widgets):
+    dicWrapper = {
+        'aggregate':dynamicParameters,
+        'string': dynamicParameters,
+        'indicator': dynamicParameters,
+        'hvplot': dynamicParameters,
+        'table': dynamicParameters,
+        'download': dynamicParameters
+    }
+
+    #return dicWrapper[viewType](paramObj,widgets)
+    return dynamicParameters(paramObj,widgets)
+
+
+def widgetUpdater(w, dictValues):
+    w.param.set_param(**dictValues)
+
 
 class UrlInput(param.String):
     '''IPv4 address as a string (dotted decimal notation)'''
@@ -78,7 +167,6 @@ class UrlInput(param.String):
     def _validate(self, val):
         super()._validate(val)
 
-
 class ChoiceInList():
     liste = param.ObjectSelector()
     def __init__(self, **params):
@@ -88,6 +176,26 @@ class ChoiceInList():
             if k in self.param:
                 self.param[k].objects = v
             self.param[k].default = self.param[k].objects[0]
+
+class ConnectSource(param.Parameterized):
+    def __init__(self, **params):
+        super(ConnectSource, self).__init__(**params)
+
+    def view(self):
+        pass
+
+    def panel(self):
+        return pn.Column(
+            pn.Param(
+                self.param,
+                expand_button=False,
+                expand=False,
+                show_name = False,
+                sizing_mode='stretch_width'
+            ),
+            self.view,
+            css_classes=['panel-widget-box'],
+            sizing_mode='stretch_width')
 
 class ChoiceSource(param.Parameterized):
     liste_des_sources = param.ObjectSelector(label='source')
@@ -101,25 +209,32 @@ class ChoiceSource(param.Parameterized):
             for cat in v:
                 for s in list(cat):
                     source_liste.append(cat[s])
-            if k in self.param:
+            if k in self.param and len(self.catalogs)>0:
                 self.param[k].objects = source_liste
                 self.param[k].default = self.param[k].objects[1]
+
         super(ChoiceSource, self).__init__()
 
     @param.depends('liste_des_sources')
     def view(self):
         if self.liste_des_sources:
-            layout = pn.Column(pn.pane.HTML(f'{self.liste_des_sources}'), sizing_mode='stretch_width')
+            layout = pn.Row()
             plot = None
+
             if self.liste_des_sources.hvplot() != None:
-                plot = self.liste_des_sources.hvplot()
-                layout.append(pn.Row(plot))
+                plot = self.liste_des_sources.hvplot.graphique_default()
+                layout.append(pn.Row(plot,sizing_mode='stretch_width'))
+            layout.append(pn.Row(
+                hv.Table(self.liste_des_sources._dataframe, sizing_mode='stretch_width').opts(height=600, width=600)))
+            return layout
+        else:
+            layout = pn.Column(pn.pane.HTML(f'Aucun catalogue disponible'), sizing_mode='stretch_width')
             return layout
 
-    @param.output(src=param.ObjectSelector(),schema=param.Dict())
+    @param.output(src=param.ObjectSelector(),schema=param.Dict(),transforms=param.Parameter())
     def output(self):
         schema = get_dataframe_schema(self.liste_des_sources._dataframe)['items']['properties']
-        return self.liste_des_sources,schema
+        return self.liste_des_sources,schema, {'transforms':{}}
 
     def panel(self):
         self.layout = pn.Column(
@@ -127,12 +242,139 @@ class ChoiceSource(param.Parameterized):
                 self.param,
                 expand_button=False, expand=False,
                 show_name = False,
+                sizing_mode='stretch_width'
             ),
             self.view,
 
             css_classes=['panel-widget-box'],
             sizing_mode='stretch_width')
         return self.layout
+
+class StepTransform(param.Parameterized):
+    lumenDashboard = param.Parameter()
+    src = param.ObjectSelector()
+    schema = param.Dict()
+    transformTypeSelector = param.ObjectSelector(allow_None=True)
+    spec = param.Parameter()
+
+    def __init__(self, **params):
+        self.transformTypeParametersDynamicWidgetsSelector = self.transform_type = self.previousTransformType = None
+        self.param['transformTypeSelector'].objects = [transform for transform in param.concrete_descendents(Transform).values() if
+                                                  transform in transformTypeSupported]
+        self.param['transformTypeSelector'].default = self.param['transformTypeSelector'].objects[0]
+        self.dashboard = Dashboard(specification=r'specYamlFile/nouveau_dashboard_default_config.yml')
+
+        super(StepTransform, self).__init__(**params)
+
+    # callback de modification des widgets spécifiques d'une view
+    def callback(self, *events):
+        if [e for e in events if e.type == "changed"]:
+            self.spec = self.specUpdate()
+
+    @param.depends('spec')
+    def dashviz(self):
+        self.error_message = ''
+        if self.spec:
+            with open(r'specYamlFile/spec_tmp_file_{}.yml'.format(self.name), 'w') as file:
+                yaml.dump(self.spec.get_dic(), file)
+
+            try:
+                self.dashboard.specification = file.name
+                self.dashboard._load_config(from_file=True)
+                self.dashboard._reload()
+            except ValueError as v:
+                print(v)
+                self.error_message = str(v)
+                return pn.Column(self.error_message, sizing_mode='stretch_width')
+            except Exception as e:
+                print(e)
+                self.error_message = str(e)
+                return pn.Column(self.error_message, sizing_mode='stretch_width')
+
+
+        return pn.Column(self.dashboard._targets[0]._cards[0].objects[0], sizing_mode='stretch_width')
+
+    def specUpdate(self):
+        transform_type = self.transformTypeSelector.transform_type
+        self.transformTypeParameters = {p.name: getattr(self, p.name) for p in self.panelWidgets}
+        self.transformTypeParameters['type'] = transform_type
+
+        self.config = {
+            'title': self.lumenDashboard.title,
+            'layout': self.lumenDashboard.layout,
+            'ncols': self.lumenDashboard.ncols,
+            'template': self.lumenDashboard.template,
+            'theme': self.lumenDashboard.theme}
+
+        if self.transformTypeParameters:
+            viewParameters = {
+                'type': 'table',
+                'table': self.src.name,
+                #**self.viewTypeParameters,
+                'transforms':[
+                            {**self.transformTypeParameters}]
+
+            }
+
+            target_param = [{
+                'title': 'Nouveau',
+                "source": {'type': 'intake',
+                           'uri': self.src.cat.path},
+                'views': [viewParameters],
+                'filters': [
+                ]
+            }]
+
+        return SpecYamlCreator(config=self.config, targets=target_param)
+
+    @param.output(src=param.ObjectSelector(), schema=param.Dict(),spec=param.Parameter())
+    def output(self):
+        return self.src, self.schema, self.spec
+
+    def view(self):
+        if self.transformTypeSelector and self.transformTypeSelector.transform_type != self.previousTransformType:
+            self.previousTransformType =  self.transform_type = self.transformTypeSelector.transform_type
+            widgets = widgetsDic[self.transform_type]
+
+            if not self.transformTypeParametersDynamicWidgetsSelector:
+                widgetsToCreate = widgets
+            else:
+                widgetsAlreadyCreated = [wid[1] for wid in self.transformTypeParametersDynamicWidgetsSelector.widgets.items()
+                                   if wid[0] in [w.name for w in widgets] ]
+                widgetsToCreate = [w for w  in widgets if w.name not in widgetsAlreadyCreated]
+
+            #self.panelWidgets = widgetWrapper(self.param, self.transform_type, widgets)
+            self.panelWidgets = dynamicParameters(self.param,  widgets)
+
+            # on map les param du viewType avec des widgets Panel
+            self.transformTypeParametersDynamicWidgetsSelector = pn.Param(
+                self.param,
+                parameters=[str(panelWidget.name).lower() for panelWidget in self.panelWidgets],
+                widgets={panelWidget.name: panelWidget for panelWidget in self.panelWidgets},
+                sizing_mode='stretch_width'
+            )
+            # on ajoute un watcher sur chaque nouveau param/widget dynamique pour reloader la viz suite d'un choix dans l'IHM
+            self.param.watch(self.callback, [str(panelWidget.name).lower() for panelWidget in widgetsToCreate])
+
+            updateWidgets(self.transform_type,self.panelWidgets, self.schema)
+
+        return pn.Column(self.transformTypeParametersDynamicWidgetsSelector, sizing_mode='stretch_width')
+
+    def panel(self):
+        return pn.Column(
+            pn.Param(
+                self.param,
+                parameters=['transformTypeSelector'],
+                widgets={'transformTypeSelector': pn.widgets.RadioButtonGroup},
+                show_name=False,
+                expand_button=False,
+                expand=False,
+                sizing_mode='stretch_width'
+            ),
+            self.view,
+            self.dashviz,
+            css_classes=['panel-widget-box'],
+            sizing_mode='stretch_width')
 
 class ChoiceTarget(param.Parameterized):
     liste = param.ObjectSelector(label='title')
@@ -171,34 +413,37 @@ class ChoiceTarget(param.Parameterized):
                 self.param,
                 expand_button=False, expand=False,
                 show_name = False,
+                sizing_mode='stretch_width'
             ),
             self.view,
 
             css_classes=['panel-widget-box'],
             sizing_mode='stretch_width')
 
-
 class StepConfiguration(param.Parameterized):
 
     src = param.ObjectSelector()
     schema = param.Dict()
 
+    transforms = param.Dict()
+    filters = param.Parameter()
+
     spec = param.Parameter(precedence=-1)
 
-    error_message = param.String()
-
-
+    error_message = param.String(doc="Message d'erreur")
 
     viewTypeSelector = param.ObjectSelector(allow_None=True)
     viewTypeParameters, dashboard = None, None
 
+    lumenDashboard = param.Parameter()
+
+    config = param.Parameter()
 
     def __init__(self, **params):
         self.view_type, self.previousViewType = None, None
         self.param['viewTypeSelector'].objects = [view for view in param.concrete_descendents(View).values() if view in viewTypeSupported]
         self.param['viewTypeSelector'].default = self.param['viewTypeSelector'].objects[0]
         self.dashboard = Dashboard(specification=r'specYamlFile/nouveau_dashboard_default_config.yml')
-        self.widgetsParams = param.Parameter(precedence=-1)
         self.viewTypeParametersDynamicWidgetsSelector = None
         super(StepConfiguration, self).__init__(**params)
 
@@ -253,7 +498,7 @@ class StepConfiguration(param.Parameterized):
         else:
             return pn.Column() #on reset le layout
 
-    def widgets(self):
+    def view(self):
 
         if self.viewTypeSelector and self.viewTypeSelector.view_type != self.previousViewType:
             self.previousViewType = self.viewTypeSelector.view_type
@@ -280,22 +525,26 @@ class StepConfiguration(param.Parameterized):
             self.param.watch(self.callback, [str(panelWidget.name).lower() for panelWidget in widgetsToCreate])
             self.updateWidgets()
 
-        return pn.Column(pn.pane.Markdown('## {}'.format(self.view_type)),
-                                       self.viewTypeParametersDynamicWidgetsSelector,
-                                       sizing_mode='stretch_width')
+        return pn.Column(self.viewTypeParametersDynamicWidgetsSelector, sizing_mode='stretch_width')
 
     def specUpdate(self):
         view_type = self.viewTypeSelector.view_type
         self.viewTypeParameters = {p.name: getattr(self, p.name) for p in self.panelWidgets}
 
-        config = {'title': "Nouveau DashBoard", 'layout': "grid", 'ncols': 2, 'template': 'material',
-                  'theme': 'dark'}
+        self.config = {
+            'title': self.lumenDashboard.title,
+            'layout': self.lumenDashboard.layout,
+            'ncols': self.lumenDashboard.ncols,
+            'template': self.lumenDashboard.template,
+            'theme': self.lumenDashboard.theme}
 
         if self.viewTypeParameters:
             viewParameters = {
                 'type': view_type,
                 'table': self.src.name,
-                **self.viewTypeParameters
+                **self.viewTypeParameters,
+                **self.transforms
+
             }
 
             target_param = [{
@@ -307,7 +556,7 @@ class StepConfiguration(param.Parameterized):
                 ]
             }]
 
-        return SpecYamlCreator(config=config, targets=target_param)
+        return SpecYamlCreator(config=self.config, targets=target_param)
 
     def panel(self):
         layout = pn.Column(
@@ -316,9 +565,10 @@ class StepConfiguration(param.Parameterized):
                 parameters=['viewTypeSelector'],
                 widgets={'viewTypeSelector': pn.widgets.RadioButtonGroup},
                 expand_button=False,
-                expand=False
+                expand=False,
+                sizing_mode='stretch_width'
                 ),
-            self.widgets,
+            self.view,
             self.dashviz,
             css_classes=['panel-widget-box'],
             sizing_mode='stretch_width')
@@ -333,8 +583,6 @@ class StepConfiguration(param.Parameterized):
         return newWidgets
 
     def widgetWrapper(self, viewType, widgets):
-
-
 
         dicWrapper = {
             'string': self.dynamicParameters,
@@ -360,67 +608,96 @@ class StepSaveView(param.Parameterized):
 
     url = param.String()
 
-    boutonSaveFinish = param.Action(label="Sauvegarder et terminer")
-    boutonCancelFinish = param.Action(label="Annuler et terminer")
+    viewName = param.String(label="identifiant de la vue")
+    targetName = param.String(label="Nom du moniteur")
 
-    dashboard = param.Parameter()
+    boutonSave = param.Action(label="Sauvegarder")
+    boutonFinish = param.Action(label="Terminer")
+
+    lumenDashboard = param.Parameter()
+
     toExistingTarget = param.Boolean(label="Intégrer la représentation dans un moniteur existant")
     targets = param.ObjectSelector()
 
+    filterName = param.String()
+    html_pane = pn.pane.HTML(" ")
+
+
     def __init__(self,**params):
-        params["boutonSaveFinish"] = self._boutonSaveFinish
-        params["boutonCancelFinish"] = self._boutonCancelFinish
+        params["boutonSave"] = self._boutonSave
+        params["boutonFinish"] = self._boutonFinish
+
+        #self.viewName = self.specification['views']['title']
 
         for k, v in params.items():
             if k in self.param:
                 if hasattr(self.param[k], "objects"):
-                    self.param[k].objects = v
-                    self.param[k].default = self.param[k].objects[0]
+                    if isinstance(v, list):
+                        if len(v) > 0:
+                            self.param[k].objects = [m.name for m in v ]
+                            self.param[k].default = self.param[k].objects[0]
+
                 else:
                     setattr(self,k, v)
         super(StepSaveView, self).__init__()
 
 
-    def _boutonSaveFinish(self, event=None):
-        # persite spec data to django model
-        yamlTargets = self.specification['targets'][0] if len(self.specification['targets'])>0 else None
-        yamlViews = yamlTargets['views'][0]  if len(yamlTargets['views'])>0 else None
-        yamlFilters = yamlTargets['filters'][0] if len(yamlTargets['filters'])>0 else None
-
+    def _boutonSave(self, event=None):
+        redirect = f"""<script>
+                window.location.href="{self.url}"</script>
+                """
+        self.html_pane.object = redirect
         # board
-        board = self.dashboard.board
+        board = self.lumenDashboard.board
+
+        # persite spec data to django model
+        yamlConf = self.specification['config'] if self.specification['config'] else None
+
+        yamlTargets = self.specification['targets'][0] if len(self.specification['targets']) > 0 else None
+        yamlViews = yamlTargets['views'][0] if len(yamlTargets['views']) > 0 else None
+        yamlTransforms = yamlViews['transforms'][0] if len(yamlViews['transforms']) > 0 else None
+        yamlFilters = yamlTargets['filters'][0] if len(yamlTargets['filters']) > 0 else None
+
 
         # Target
 
         if self.toExistingTarget:
-            targetEntity = next(t for t in board.targetentity_set.all() if t.name == self.targets.name)
+            targetEntity = next(t for t in board.targetentity_set.all() if t.name == self.targets)
         else:
             if yamlTargets:
-                targetEntity = TargetEntity(board=board,name="Nouveau",specYaml=yamlTargets)
+                targetEntity = TargetEntity(board=board,name=self.targetName,specYaml=yamlTargets)
 
         # View
         if yamlViews:
-            viewEntity = ViewEntity(target=targetEntity,name='Nouvelle Vue',specYaml=yamlViews)
+            viewEntity = ViewEntity(target=targetEntity,name=self.viewName,specYaml=yamlViews)
 
         # Transforms
+        if yamlTransforms:
+            transformEntity = TransformEntity(view=viewEntity,specYaml=yamlTransforms)
 
         # Filters
         if yamlFilters:
-            filterEntity = FilterEntity(target=targetEntity, name='Nouveau filtre', specYaml=yamlFilters)
+            filterEntity = FilterEntity(target=targetEntity, specYaml=yamlFilters)
+
 
         targetEntity.save()
         viewEntity.save()
+        board.save(conf=yamlConf)
 
 
-        with open(r'specYamlFile/dashboard_{}.yml'.format(self.dashboard._session), 'w') as file:
+
+        with open(r'specYamlFile/dashboard_{}.yml'.format(self.lumenDashboard._session), 'w') as file:
             yaml.dump(yaml.load(board.config), file)
 
+        self.lumenDashboard.specDoc = file
+
         # return to dashboard
-        return #urllib.request.urlopen(self.url)
+
+        self.html_pane.param.trigger('object')
+        self.html_pane.object = " "
 
 
-
-    def _boutonCancelFinish(self, event=None):
+    def _boutonFinish(self, event=None):
         #return to dashboard
         pass
 
@@ -431,25 +708,39 @@ class StepSaveView(param.Parameterized):
                                       show_labels=False,
                                       show_name=False,
                                       expand_button=False,
-                                      expand=False
-                                      ))
+                                      expand=False,
+                                      sizing_mode='stretch_width'
+                                      ),sizing_mode='stretch_width')
         else:
-            return pn.Column()
+            return pn.Column(sizing_mode='stretch_width')
 
     def panel(self):
+
+
+        redirect = f""" window.location.href="{self.url}"
+        """
+
+        boutonSave = pn.widgets.Button(name=self.param.boutonSave.label, button_type="success")
+        boutonFinish = pn.widgets.Button(name=self.param.boutonFinish.label , button_type="primary")
+
+        #boutonSave.on_click(self._boutonSave)
+        boutonFinish.js_on_click(code=redirect)
+
         return pn.Column(
             pn.Param(
                 self.param,
-                parameters=['toExistingTarget','boutonSaveFinish','boutonCancelFinish'],
+                parameters=['viewName','targetName','toExistingTarget','boutonSave','boutonFinish'],
                 widgets={
-                    "boutonSaveFinish": {"button_type": "success", "width": 150, "sizing_mode": "fixed"},
-                    "boutonCancelFinish": {"button_type": "primary", "width": 150, "sizing_mode": "fixed"}
+                    "boutonSave": boutonSave,
+                    "boutonFinish": boutonFinish
                 },
                 show_name=False,
                 expand_button=False,
                 expand=False,
+                sizing_mode='stretch_width'
             ),
             self.view,
+            self.html_pane,
             css_classes=['panel-widget-box'],
             sizing_mode='stretch_width')
 
