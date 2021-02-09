@@ -13,6 +13,7 @@ from vizApps.services.lumen.lumenService import LumenDashboard
 
 import vizApps.services.viz.VizInstanceService as VizConstructor
 
+psud_branding = {'header_background':'#002f87'}
 
 class BoardController():
 
@@ -116,6 +117,7 @@ class BoardController():
             lumenDashBord = LumenDashboard(board=board.id, sessionId=session_id)
 
         template = lumenDashBord.dashBoard.template
+        template.header_background = psud_branding['header_background']
         doc = template._init_doc()
         template_variables = doc.template_variables
 
@@ -252,6 +254,8 @@ class BoardController():
 
 
         template = lumenDashBord.dashBoard.template
+        template.header_background = psud_branding['header_background']
+
         doc=template._init_doc()
         template_variables = doc.template_variables
 

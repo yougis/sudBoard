@@ -30,11 +30,12 @@ def getAppViewCreator(doc):
     layout.server_doc(doc)
 
 def getUniqueSourcesFromMonitors(monitors):
-    sources_list = [m.source.cat for m in monitors]
+    sources_list = [m.source for m in monitors]
+   # sources_list = list((key,d[key]) for d in [m.schema for m in monitors] for key in d)
     unique_sources_list = []
-    [unique_sources_list.append(cat) for cat in sources_list if cat not in unique_sources_list]
+    [unique_sources_list.append(source) for source in sources_list if source not in unique_sources_list]
 
-    return unique_sources_list
+    return sources_list
 
 
 

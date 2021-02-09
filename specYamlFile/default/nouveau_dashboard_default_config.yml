@@ -1,0 +1,14 @@
+config:
+  layout: grid
+  ncols: 2
+  template: material
+  theme: dark
+  title: Nouveau DashBoard
+targets:
+- filters: []
+  source: Nouveau
+  title: Nouveau moniteur
+sources:
+  Nouveau:
+    type: file
+    files: [new.csv]

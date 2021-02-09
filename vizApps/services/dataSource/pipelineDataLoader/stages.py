@@ -41,7 +41,7 @@ from vizApps.domain.lumen.transform import TransformEntity
 
 path = BASE_DIR + '/vizApps/services/intake/'
 
-viewTypeSupported = [StringView,IndicatorView,hvPlotView]
+viewTypeSupported = [IndicatorView,hvPlotView]
 
 transformTypeSupported = [Aggregate, Columns,Sort]
 aggregateMethods = ['sum','mean','max','min']
@@ -55,12 +55,20 @@ widgetsDic = {
     "sort": [pn.widgets.Select(name='by'),
              pn.widgets.Checkbox(name='ascending')],
     "columns": [pn.widgets.MultiSelect(name='columns')],
+
+    # filters
+    'facet':[],
+    'widget':[],
+    'constant':[],
     
     # Views widgets
     "string" : [pn.widgets.Select(name='field'),
-                pn.widgets.TextInput(name='font_size',value='24pt')],
+                pn.widgets.TextInput(name='font_size',value='24pt'),
+                pn.widgets.Select(name='index'),
+                pn.widgets.TextInput(name='label',placeholder='indiquer un label pour le widget')],
     "indicator" : [pn.widgets.Select(name='indicator',options=['string','number','progress','gauge','dial']),
-                   pn.widgets.TextInput(name='label',placeholder='indiquer un titre pour le widget'),
+                   pn.widgets.Select(name='index'),
+                   pn.widgets.TextInput(name='label',placeholder='indiquer un label pour le widget',value=''),
                    pn.widgets.Select(name='field')],
     "hvplot" : [
         pn.widgets.Select(name='kind',options=hvPlot.__all__),
@@ -81,22 +89,22 @@ widgetPropertiesToUpdate = {
     "columns": ['columns'],
 
     # Views widgets
-    'string': ['field'],
-    'indicator': ['field','indicator'],
+    'string': ['field','index'],
+    'indicator': ['field','indicator','index'],
     'hvplot': ['x', 'y'],
     'table': [''],
     'download': ['']
 }
 
 
-def updateWidgets(type,panelWidgets, schema):
+def updateWidgets(type,panelWidgets, schema, transform):
     if type:
         # initialisation des widgets
         # ajuster les options des widgets à partir des données sources
         # on initialise la valeur des param avec la valeur des widgets
         # on affecte les valeurs  / options par défaut aux widgets
 
-        [widgetUpdater(w, {**dicMapping(w.name,schema), **dicMapping('*',schema)}) for w in panelWidgets if
+        [widgetUpdater(w, {**dicMapping(w.name,schema,transform), **dicMapping('*',schema)}) for w in panelWidgets if
          w.name in widgetPropertiesToUpdate[type]]
 
     else:
@@ -104,7 +112,11 @@ def updateWidgets(type,panelWidgets, schema):
 
 
 
-def dicMapping (widgetName,schema):
+def dicMapping (widgetName,schema,transform=None):
+    index, columns = None, None
+    if transform:
+        index =transform.get('by',None)
+        columns = transform.get('columns',None)
 
     dic = {
         '*': {},
@@ -119,9 +131,12 @@ def dicMapping (widgetName,schema):
             'value': list([str(i) for i in schema.keys()]),
             'options': list([str(i) for i in schema.keys()])},
         'indicator': {'value': 'string'},
+        'index':{
+            'value': schema[index]['enum'][0] if index else None,
+            'options': schema[index]['enum'] if index else []},
         'field': {
-            'value': list([str(i) for i in schema.keys()])[0],
-            'options': list([str(i) for i in schema.keys()])},
+            'value': columns[0] if columns else list([str(i) for i in schema.keys()])[0],
+            'options': columns if columns else list([str(i) for i in schema.keys()])},
         'x': {'options': list([str(i) for i in schema.keys()])},
         'y': {'value': list([str(i) for i in schema.keys()])[0],
               'options': list([str(i) for i in schema.keys()])}
@@ -134,21 +149,6 @@ def dynamicParameters(paramObj, newWidgets):
             paramObj._add_parameter(param_name=str(w.name).lower(), param_obj=param.Parameter())
             paramObj.set_default(str(w.name).lower(), w.value)
     return newWidgets
-
-
-def widgetWrapper(paramObj, viewType, widgets):
-    dicWrapper = {
-        'aggregate':dynamicParameters,
-        'string': dynamicParameters,
-        'indicator': dynamicParameters,
-        'hvplot': dynamicParameters,
-        'table': dynamicParameters,
-        'download': dynamicParameters
-    }
-
-    #return dicWrapper[viewType](paramObj,widgets)
-    return dynamicParameters(paramObj,widgets)
-
 
 def widgetUpdater(w, dictValues):
     w.param.set_param(**dictValues)
@@ -204,31 +204,40 @@ class ChoiceSource(param.Parameterized):
 
         self.init = True
         source_liste = []
-        for k, v in params.items():
-            self.catalogs = v
-            for cat in v:
-                for s in list(cat):
-                    source_liste.append(cat[s])
+        for k, sources in params.items():
+            self.catalogs = sources
+            for source in sources:
+                for table in list(source.cat):
+                    source_liste.append(source.cat[table])
             if k in self.param and len(self.catalogs)>0:
                 self.param[k].objects = source_liste
-                self.param[k].default = self.param[k].objects[1]
+                self.param[k].default = self.param[k].objects[0]
 
         super(ChoiceSource, self).__init__()
 
     @param.depends('liste_des_sources')
     def view(self):
-        layout = pn.Row()
+        layout = pn.Tabs()
         plot = None
-        if self.liste_des_sources and self.liste_des_sources.classname != 'intake_geopandas.geopandas.PostGISSource':
-            if self.liste_des_sources.hvplot() != None:
-                plot = self.liste_des_sources.hvplot.graphique_default()
-                layout.append(pn.Row(plot,sizing_mode='stretch_width'))
-            layout.append(pn.Row(
-                hv.Table(self.liste_des_sources._dataframe, sizing_mode='stretch_width').opts(height=600, width=600)))
+        if self.liste_des_sources:
+            plot = self.liste_des_sources.plot.graphique_default()
+
+            plot.opts(toolbar='above',default_tools=['box_select','wheel_zoom','reset'],active_tools=['tap','wheel_zoom'])
+
+            layout.append(('Graphique',
+                           pn.Row(plot,sizing_mode='stretch_width')))
+
+            dataTable = self.liste_des_sources._dataframe
+            if hvplot.util.is_geodataframe(dataTable):
+                dataTable = pd.DataFrame(dataTable.drop(['geometry'], axis=1))
+
+            table = hv.Table(dataTable,sizing_mode='stretch_width').opts(height=650, width=1500)
+
+            layout.append(('Table',
+                           pn.Row(table)))
+            if len(plot) == len(table):
+                DataLink(plot, table)
             return layout
-        elif self.liste_des_sources.classname == 'intake_geopandas.geopandas.PostGISSource':
-            self.liste_des_sources._dataframe.hvplot(geo=True, tiles=True)
-            ...
         else:
             layout = pn.Column(pn.pane.HTML(f'Aucun catalogue disponible'), sizing_mode='stretch_width')
             return layout
@@ -257,16 +266,16 @@ class StepTransform(param.Parameterized):
     src = param.ObjectSelector()
     schema = param.Dict()
     transformTypeSelector = param.ObjectSelector(allow_None=True)
+    transformTypeParameters = param.Parameter()
     spec = param.Parameter()
 
     def __init__(self, **params):
+        super(StepTransform, self).__init__(**params)
         self.transformTypeParametersDynamicWidgetsSelector = self.transform_type = self.previousTransformType = None
         self.param['transformTypeSelector'].objects = [transform for transform in param.concrete_descendents(Transform).values() if
                                                   transform in transformTypeSupported]
         self.param['transformTypeSelector'].default = self.param['transformTypeSelector'].objects[0]
-        self.dashboard = Dashboard(specification=r'specYamlFile/nouveau_dashboard_default_config.yml')
-
-        super(StepTransform, self).__init__(**params)
+        self.dashboard = Dashboard(specification=r'specYamlFile/default/nouveau_dashboard_default_config.yml')
 
     # callback de modification des widgets spécifiques d'une view
     def callback(self, *events):
@@ -277,7 +286,7 @@ class StepTransform(param.Parameterized):
     def dashviz(self):
         self.error_message = ''
         if self.spec:
-            with open(r'specYamlFile/spec_tmp_file_{}.yml'.format(self.name), 'w') as file:
+            with open(r'specYamlFile/temp/spec_tmp_file_{}.yml'.format(self.name), 'w') as file:
                 yaml.dump(self.spec.get_dic(), file)
 
             try:
@@ -293,13 +302,18 @@ class StepTransform(param.Parameterized):
                 self.error_message = str(e)
                 return pn.Column(self.error_message, sizing_mode='stretch_width')
 
-
-        return pn.Column(self.dashboard._targets[0]._cards[0].objects[0], sizing_mode='stretch_width')
+            return pn.Column(
+                pn.Row(self.dashboard._targets[0]._cards[0].objects[0],sizing_mode='stretch_width')
+            )
+        else:
+            return pn.Column()
 
     def specUpdate(self):
-        transform_type = self.transformTypeSelector.transform_type
-        self.transformTypeParameters = {p.name: getattr(self, p.name) for p in self.panelWidgets}
-        self.transformTypeParameters['type'] = transform_type
+        if self.transformTypeSelector:
+            transform_type = self.transformTypeSelector.transform_type
+            if hasattr(self, 'panelWidgets'):
+                self.transformTypeParameters = {p.name: getattr(self, p.name) for p in self.panelWidgets}
+                self.transformTypeParameters['type'] = transform_type
 
         self.config = {
             'title': self.lumenDashboard.title,
@@ -308,32 +322,57 @@ class StepTransform(param.Parameterized):
             'template': self.lumenDashboard.template,
             'theme': self.lumenDashboard.theme}
 
-        if self.transformTypeParameters:
-            viewParameters = {
-                'type': 'table',
-                'table': self.src.name,
-                #**self.viewTypeParameters,
-                'transforms':[
-                            {**self.transformTypeParameters}]
+        viewParameters = {
+            'type' : 'table',
+            'pagination' : 'remote'
+        }
 
+        target_param = [{
+            'title': 'Nouveau',
+            'views': [viewParameters],
+            'filters': [
+            ]
+        }]
+
+        sources_param ={'sources':[
+            {"new":
+                    {'type': 'file',
+                     'files': ['new.csv']
+                     }
             }
+            ]}
 
-            target_param = [{
-                'title': 'Nouveau',
-                "source": {'type': 'intake',
-                           'uri': self.src.cat.path},
-                'views': [viewParameters],
-                'filters': [
-                ]
-            }]
+        if hasattr(self, 'transformTypeParameters') and hasattr(self, 'src'):
+            target_param[0]['source'] = self.src.name
+            # todo ajouter des filtres pour la préparation de la donnée
+            #target_param[0]['filters'] = [{'field': str(list(self.schema.keys())[0]) ,'type': 'widget'}]
 
-        return SpecYamlCreator(config=self.config, targets=target_param)
+            viewParameters['table'] =  self.src.name
+            viewParameters['transforms'] = [{**self.transformTypeParameters}]
 
-    @param.output(src=param.ObjectSelector(), schema=param.Dict(),spec=param.Parameter())
+            sources_param = {self.src.name : {
+                'type' : 'intake',
+                'shared' : True,
+                'cache_dir' : "cache",
+                'catalog': yaml.load(self.src.__repr__())
+                }
+                }
+
+        else:
+            viewParameters['source'] = 'new'
+
+
+        return SpecYamlCreator(config=self.config, targets=target_param, sources=sources_param)
+
+    @param.output(src=param.ObjectSelector(), schema=param.Dict(),spec=param.Parameter(), transforms=param.Parameter())
     def output(self):
-        return self.src, self.schema, self.spec
+        return self.src, self.schema, self.spec, self.transformTypeParameters
 
     def view(self):
+
+        if not self.transformTypeSelector:
+            self.transformTypeSelector = self.param['transformTypeSelector'].default
+
         if self.transformTypeSelector and self.transformTypeSelector.transform_type != self.previousTransformType:
             self.previousTransformType =  self.transform_type = self.transformTypeSelector.transform_type
             widgets = widgetsDic[self.transform_type]
@@ -345,7 +384,6 @@ class StepTransform(param.Parameterized):
                                    if wid[0] in [w.name for w in widgets] ]
                 widgetsToCreate = [w for w  in widgets if w.name not in widgetsAlreadyCreated]
 
-            #self.panelWidgets = widgetWrapper(self.param, self.transform_type, widgets)
             self.panelWidgets = dynamicParameters(self.param,  widgets)
 
             # on map les param du viewType avec des widgets Panel
@@ -353,14 +391,20 @@ class StepTransform(param.Parameterized):
                 self.param,
                 parameters=[str(panelWidget.name).lower() for panelWidget in self.panelWidgets],
                 widgets={panelWidget.name: panelWidget for panelWidget in self.panelWidgets},
-                sizing_mode='stretch_width'
+                sizing_mode='stretch_width',
+                show_name=False,
+                expand_button=False,
+                expand=False,
             )
             # on ajoute un watcher sur chaque nouveau param/widget dynamique pour reloader la viz suite d'un choix dans l'IHM
             self.param.watch(self.callback, [str(panelWidget.name).lower() for panelWidget in widgetsToCreate])
 
-            updateWidgets(self.transform_type,self.panelWidgets, self.schema)
+            updateWidgets(self.transform_type,self.panelWidgets, self.schema, self.transformTypeParameters)
 
-        return pn.Column(self.transformTypeParametersDynamicWidgetsSelector, sizing_mode='stretch_width')
+            #todo ajouter des filtres pour la préparation de la donnée
+            #layout.append(pn.Row(self.dashboard._targets[0].filters[0].panel, sizing_mode='stretch_width'))
+        layout = pn.Column(self.transformTypeParametersDynamicWidgetsSelector, sizing_mode='stretch_width')
+        return layout
 
     def panel(self):
         return pn.Column(
@@ -394,14 +438,11 @@ class ChoiceTarget(param.Parameterized):
                     setattr(self,k, v)
         super(ChoiceTarget, self).__init__()
 
-    #@param.depends('liste', 'source')
     @param.depends('liste')
     def view(self):
 
         if self.liste:
             title = pn.Column(pn.pane.Markdown('## {}'.format(self.liste)), sizing_mode='stretch_width')
-            #panels = self.liste.panels
-            #layout = title + panels
             return title
 
     @param.output(target_select=param.String(),source_select=param.ObjectSelector())
@@ -427,8 +468,8 @@ class StepConfiguration(param.Parameterized):
     src = param.ObjectSelector()
     schema = param.Dict()
 
-    transforms = param.Dict()
-    filters = param.Parameter()
+    transforms = param.Parameter()
+    filterTypeSelector = param.ObjectSelector(allow_None=True)
 
     spec = param.Parameter(precedence=-1)
 
@@ -442,12 +483,13 @@ class StepConfiguration(param.Parameterized):
     config = param.Parameter()
 
     def __init__(self, **params):
-        self.view_type, self.previousViewType = None, None
+        super(StepConfiguration, self).__init__(**params)
+        self.view_type = self.previousViewType = None
         self.param['viewTypeSelector'].objects = [view for view in param.concrete_descendents(View).values() if view in viewTypeSupported]
         self.param['viewTypeSelector'].default = self.param['viewTypeSelector'].objects[0]
-        self.dashboard = Dashboard(specification=r'specYamlFile/nouveau_dashboard_default_config.yml')
+        self.dashboard = Dashboard(specification=r'specYamlFile/default/nouveau_dashboard_default_config.yml')
         self.viewTypeParametersDynamicWidgetsSelector = None
-        super(StepConfiguration, self).__init__(**params)
+
 
     # callback de modification des widgets spécifiques d'une view
     def callback(self,*events):
@@ -458,7 +500,7 @@ class StepConfiguration(param.Parameterized):
     def dashviz(self):
         self.error_message = ''
         if self.spec:
-            with open(r'specYamlFile/spec_tmp_file_{}.yml'.format(self.name), 'w') as file:
+            with open(r'specYamlFile/temp/spec_tmp_file_{}.yml'.format(self.name), 'w') as file:
                 yaml.dump(self.spec.get_dic(), file)
 
             try:
@@ -474,33 +516,10 @@ class StepConfiguration(param.Parameterized):
 
         return pn.Column(self.dashboard._targets[0]._cards[0], sizing_mode='stretch_width')
 
-    def updateWidgets(self):
-
-        if self.viewTypeSelector:
-            self.view_type = self.viewTypeSelector.view_type
-
-            # initialisation des widgets
-            # ajuster les options des widgets à partir des données sources
-
-            dicMapping = {
-                '*': {},
-                'indicator' : {'value' : 'string'},
-                'field': {
-                    'value': list([str(i) for i in self.schema.keys()])[0],
-                    'options': list([str(i) for i in self.schema.keys()])},
-                'x': {'options': list([str(i) for i in self.schema.keys()])},
-                'y': {'value': list([str(i) for i in self.schema.keys()])[0],
-                      'options': list([str(i) for i in self.schema.keys()])}
-            }
-            # on initialise la valeur des param avec la valeur des widgets
-            # on affecte les valeurs  / options par défaut aux widgets
-
-            [self.widgetUpdater(w, {**dicMapping[w.name],**dicMapping['*']}) for w in self.panelWidgets if w.name in widgetPropertiesToUpdate[self.view_type]]
-
-        else:
-            return pn.Column() #on reset le layout
-
     def view(self):
+
+        if not self.viewTypeSelector:
+            self.viewTypeSelector = self.param['viewTypeSelector'].default
 
         if self.viewTypeSelector and self.viewTypeSelector.view_type != self.previousViewType:
             self.previousViewType = self.viewTypeSelector.view_type
@@ -514,20 +533,27 @@ class StepConfiguration(param.Parameterized):
                                    if wid[0] in [w.name for w in widgets] ]
                 widgetsToCreate = [w for w  in widgets if w.name not in widgetsAlreadyCreated]
 
-            self.panelWidgets = self.widgetWrapper(self.view_type, widgets)
+            self.panelWidgets = dynamicParameters(self.param,  widgets)
 
             # on map les param du viewType avec des widgets Panel
             self.viewTypeParametersDynamicWidgetsSelector = pn.Param(
                 self.param,
                 parameters=[str(panelWidget.name).lower() for panelWidget in self.panelWidgets],
                 widgets={panelWidget.name: panelWidget for panelWidget in self.panelWidgets},
-                sizing_mode='stretch_width'
+                sizing_mode='stretch_width',
+                show_name=False,
+                expand_button=False,
+                expand=False,
             )
             # on ajoute un watcher sur chaque nouveau param/widget dynamique pour reloader la viz suite d'un choix dans l'IHM
             self.param.watch(self.callback, [str(panelWidget.name).lower() for panelWidget in widgetsToCreate])
-            self.updateWidgets()
+            updateWidgets(self.view_type, self.panelWidgets, self.schema, self.transforms)
 
         return pn.Column(self.viewTypeParametersDynamicWidgetsSelector, sizing_mode='stretch_width')
+
+    def filter(self):
+        if not self.filterTypeSelector:
+            self.filterTypeSelector = self.param['filterTypeSelector'].default
 
     def specUpdate(self):
         view_type = self.viewTypeSelector.view_type
@@ -544,10 +570,11 @@ class StepConfiguration(param.Parameterized):
             viewParameters = {
                 'type': view_type,
                 'table': self.src.name,
+                'rot' : 45,
+                'name': self.viewTypeParameters.get('label', self.viewTypeParameters.get('title','')),
                 **self.viewTypeParameters,
-                **self.transforms
-
             }
+            viewParameters['transforms'] = [{**self.transforms}]
 
             target_param = [{
                 'title': 'Nouveau',
@@ -561,43 +588,39 @@ class StepConfiguration(param.Parameterized):
         return SpecYamlCreator(config=self.config, targets=target_param)
 
     def panel(self):
-        layout = pn.Column(
+        layout = pn.Row(
+            pn.Column(
             pn.Param(
                 self.param,
                 parameters=['viewTypeSelector'],
                 widgets={'viewTypeSelector': pn.widgets.RadioButtonGroup},
                 expand_button=False,
                 expand=False,
-                sizing_mode='stretch_width'
+                sizing_mode='stretch_width',
+                show_name=False
                 ),
             self.view,
             self.dashviz,
             css_classes=['panel-widget-box'],
-            sizing_mode='stretch_width')
+            sizing_mode='stretch_width'),
+
+            pn.Column(
+                pn.Param(
+                    self.param,
+                    parameters=['filterTypeSelector'],
+                    widgets={'filterTypeSelector': pn.widgets.RadioButtonGroup},
+                    expand_button=False,
+                    expand=False,
+                    sizing_mode='stretch_width',
+                    show_name=False
+                ),
+                self.filter,
+                css_classes=['panel-widget-box'],
+                sizing_mode='stretch_width'),
+        )
 
         return layout
 
-    def dynamicParameters(self,newWidgets):
-        for w in newWidgets:
-            if len([i for i in self.param if i==str(w.name).lower()])==0:
-                self._add_parameter(param_name=str(w.name).lower(),param_obj=param.Parameter())
-                self.set_default(str(w.name).lower(),w.value)
-        return newWidgets
-
-    def widgetWrapper(self, viewType, widgets):
-
-        dicWrapper = {
-            'string': self.dynamicParameters,
-            'indicator': self.dynamicParameters,
-            'hvplot': self.dynamicParameters,
-            'table': self.dynamicParameters,
-            'download':self.dynamicParameters
-        }
-
-        return dicWrapper[viewType](widgets)
-
-    def widgetUpdater(self,w,dictValues):
-        w.param.set_param(**dictValues)
 
     @param.output(specification=param.Dict())
     def output(self):
@@ -610,26 +633,23 @@ class StepSaveView(param.Parameterized):
 
     url = param.String()
 
-    viewName = param.String(label="identifiant de la vue")
     targetName = param.String(label="Nom du moniteur")
 
-    boutonSave = param.Action(label="Sauvegarder")
-    boutonFinish = param.Action(label="Terminer")
+    boutonSave = param.Action(label="Sauvegarder",precedence=2)
+    boutonFinish = param.Action(label="Terminer",precedence=3)
 
     lumenDashboard = param.Parameter()
 
-    toExistingTarget = param.Boolean(label="Intégrer la représentation dans un moniteur existant")
+    toExistingTarget = param.Boolean(precedence=0)
     targets = param.ObjectSelector()
 
     filterName = param.String()
-    html_pane = pn.pane.HTML(" ")
+    html_pane = pn.pane.HTML(" ",precedence=1)
 
 
     def __init__(self,**params):
         params["boutonSave"] = self._boutonSave
         params["boutonFinish"] = self._boutonFinish
-
-        #self.viewName = self.specification['views']['title']
 
         for k, v in params.items():
             if k in self.param:
@@ -671,7 +691,7 @@ class StepSaveView(param.Parameterized):
 
         # View
         if yamlViews:
-            viewEntity = ViewEntity(target=targetEntity,name=self.viewName,specYaml=yamlViews)
+            viewEntity = ViewEntity(target=targetEntity,name=yamlViews['name'],specYaml=yamlViews)
 
         # Transforms
         if yamlTransforms:
@@ -688,7 +708,7 @@ class StepSaveView(param.Parameterized):
 
 
 
-        with open(r'specYamlFile/dashboard_{}.yml'.format(self.lumenDashboard._session), 'w') as file:
+        with open(r'specYamlFile/temp/dashboard_{}.yml'.format(self.lumenDashboard._session), 'w') as file:
             yaml.dump(yaml.load(board.config), file)
 
         self.lumenDashboard.specDoc = file
@@ -725,14 +745,14 @@ class StepSaveView(param.Parameterized):
         boutonSave = pn.widgets.Button(name=self.param.boutonSave.label, button_type="success")
         boutonFinish = pn.widgets.Button(name=self.param.boutonFinish.label , button_type="primary")
 
-        #boutonSave.on_click(self._boutonSave)
         boutonFinish.js_on_click(code=redirect)
 
         return pn.Column(
             pn.Param(
                 self.param,
-                parameters=['viewName','targetName','toExistingTarget','boutonSave','boutonFinish'],
+                parameters=['targetName','toExistingTarget','boutonSave','boutonFinish'],
                 widgets={
+                    "toExistingTarget": pn.widgets.button.Toggle(name="Intégrer la représentation à un moniteur existant"),
                     "boutonSave": boutonSave,
                     "boutonFinish": boutonFinish
                 },

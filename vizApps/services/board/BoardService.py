@@ -61,8 +61,9 @@ def getHeaderLumenEditor(doc):
 def getSideBarLumenEditor(doc):
     template = getLumenTemplate(doc)
     layout = pn.Column(sizing_mode='stretch_width')
-    layout.append(template.sidebar.objects[0])
     layout.append(getLumenDashBoard(doc).panel())
+    layout.append(template.sidebar.objects[0])
+
     #template._js_area.server_doc(doc)
     layout.server_doc(doc)
 
@@ -212,7 +213,9 @@ def save():
     return "ok"
 
 def clearCache():
-    VizConstructor.clearInstances()
-    ConnectorInterface.instances.clear()
+
+    #VizConstructor.clearInstances()
+    #ConnectorInterface.instances.clear()
+    LumenDashboard.clearInstances()
 
     return "Cleaned"

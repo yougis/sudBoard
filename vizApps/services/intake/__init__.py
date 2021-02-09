@@ -5,20 +5,28 @@ from intake_geopandas import PostGISSource
 import yaml
 
 postgisAgb = PostGISSource(uri = 'postgresql://admsig@pgsql2-prod.province-sud.prod:5432/ddr',
-                        sql_expr='select * from agb.autorisation_ouvrage_eau',
+                        sql_expr='select *,public.ST_transform(geom,3857) as geometry from agb.autorisation_ouvrage_eau where geom is not null',
                         table='agb.autorisation_ouvrage_eau',
-                        geopandas_kwargs=None,
-                        metadata=None)
+                        geopandas_kwargs={'geom_col':"geometry"})
 
 postgisAgb.name = 'geom_autorisation_ouvrage_eau'
 postgisAgb.description = 'Donnée spatiale Autorisation d\'ouvrage eau'
 
 postgisAgb.metadata['plots'] = {'graphique_default':
                               {
-                                  'tiles' :'EsriTerrain',
-                                  'hover_cols':'all',
-                                  'projetction':crs.GOOGLE_MERCATOR,
-                                  'height': 600,
+                                  'tiles' :'CartoLight',
+                                  'height': 650,
+                                  'width': 1500,
+                                  'alpha':0.4,
+                                  's':"Débit de prélèvement  maximum autorisé m3/J",
+                                  'scale':0.4,
+                                  'hover':True,
+                                  'c':'Type ouvrage',
+                                  'hover_cols': ['Numéro ouvrage GERE'],
+                                  'legend': 'bottom',
+                                  'xaxis' : None,
+                                  'yaxis': None,
+                                  'tools':['tap']
                                }
                           }
 
@@ -45,6 +53,8 @@ agb1.metadata['plots'] = {'graphique_default':
                                   'x':"Type ouvrage",
                                   'y':"Débit de prélèvement  maximum autorisé m3/J",
                                   'height': 600,
+                                  'width': 1400,
+                                  'tools':['tap']
                                }
                           }
 
@@ -84,7 +94,8 @@ agb2.metadata['plots'] = {'graphique_default':
                                'cmap':'Category20',
                                'alpha':0.5,
                                'height': 600,
-                               'width':600
+                               'width': 1400,
+                                'tools':['tap']
                                }
                           }
 

@@ -25,7 +25,7 @@ BASE_URL = [('PROD', 'https://psud.nc'),('QUALIF', 'https://qualif.psud.nc'),('D
 BASE_URL_DIC = {
     'PROD':'https://psud.nc',
     'QUALIF': 'https://qualif.psud.nc',
-    'DEV':"http://localhost:7000"
+    'DEV':"http://10.30.5.10:7000"
 }
 
 LUMEN = {
@@ -41,7 +41,7 @@ SECRET_KEY = '*yn698))0wy)kpt7+ovp!dva-+gfw$++-tfcbk$nkoc$7q64y#'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['*','10.30.5.10','PSD-0047067.province-sud.prod']
 
 
 # Application definition

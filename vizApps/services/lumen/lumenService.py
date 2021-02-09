@@ -30,7 +30,8 @@ class LumenDashboard(param.Parameterized):
     ncols = param.Integer(label='Nombre de colonne', default=2)
     theme = param.ObjectSelector(label="Theme", objects=['default','dark'], default='default')
     template = param.String(default="material",precedence=-1)
-    logo = param.FileSelector()
+    logo = param.FileSelector(precedence=-1)
+    specfile = param.FileSelector()
     specDoc = param.Parameter(precedence=-1)
 
     def __init__(self, **kwargs):
@@ -49,7 +50,10 @@ class LumenDashboard(param.Parameterized):
         if hasattr(self, 'dashBoard'):
             self.dashBoard.specification = self.specDoc.name
             self.dashBoard._load_config(from_file=True)
-            self.dashBoard._reload()
+            try:
+                self.dashBoard._reload()
+            except(Exception) as e:
+                print(e)
         else:
             self.dashBoard = Dashboard(specification=self.specDoc.name)
 
@@ -57,7 +61,7 @@ class LumenDashboard(param.Parameterized):
 
         if self.board.config:
             specification = self.board.config
-            with open(r'specYamlFile/dashboard_{}.yml'.format(self._session), 'w') as file:
+            with open(r'specYamlFile/temp/dashboard_{}.yml'.format(self._session), 'w') as file:
                 yaml.dump(specification, file)
             return file
         else:
@@ -245,9 +249,18 @@ class LumenDashboard(param.Parameterized):
 
         view = yaml.dump(SpecYamlCreator(table='test', type='hvplot', kind='tt',trasforms=transform_ex))
 
-        with open(r'specYamlFile/nouveau_dashboard_default_config.yml', 'w') as file:
+        with open(r'specYamlFile/default/nouveau_dashboard_default_config.yml', 'w') as file:
             yaml.dump(specification, file)
             return file
+
+    @param.depends('specfile', watch=True)
+    def uploadSpecFile(self):
+        if self.specfile:
+            with open(r'specYamlFile/upload/dashboard_{}.yml'.format(self._session), 'w') as file:
+                spec = yaml.load(self.specfile)
+                yaml.dump(spec, file)
+            self.specDoc = file
+
 
     def view(self):
         if not self.initialized:
@@ -261,14 +274,14 @@ class LumenDashboard(param.Parameterized):
             self.initialized = True
 
     def panel(self):
-        self.updateSpec()
         layout = pn.Column(
             pn.Param(
                 self.param,
                 #parameters=[],
                 widgets={
                     #'title': pn.widgets.TextInput(placeholder="Indiquer le titre du DashBoard"),
-                    'logo': pn.widgets.FileInput(accept='.jpg,.png,.ico,.gif',name="Logo")},
+                    'logo': pn.widgets.FileInput(accept='.jpg,.png,.ico,.gif',name="Logo"),
+                    'specfile': pn.widgets.FileInput(accept='.yaml,.yml', name="Specification File")},
                 show_name=False,
                 expand_button=False,
                 expand=False,
@@ -294,3 +307,7 @@ class LumenDashboard(param.Parameterized):
         instances = [inst for inst in instancesList if inst._session == sessionId]
         for i in instances:
             instancesList.remove(i)
+
+    @classmethod
+    def clearInstances(cls):
+        instancesList.clear()

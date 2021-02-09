@@ -51,7 +51,6 @@ bokeh_apps = [
     autoload(f"^studio/boardconfig/", BoardService.getAppBoardUpdateConfig),
     autoload(f"^studio-pipeline/dataloader/", dataLoaderService.getAppDataLoader),
     autoload(f"^studio-pipeline/viewcreator/", viewService.getAppViewCreator),
-    #autoload(f"^studio/viewcreator/", dataLoaderService.getAppDataLoader),
 
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),
 ]

@@ -3,9 +3,10 @@
 <aside class="mdc-drawer mdc-top-app-bar--fixed-adjust mdc-drawer--dismissible mdc-drawer--open" id="sidebar">
   <div class="mdc-drawer__content">
     <div class="mdc-list">
-    {{ sidebar|safe }}
+      {{ sidebar|safe }}
       {% include "board/view_manager.html" %}
-      {% include "board/board_config.html" %}
+
+
       {% include "board/board_actions.html" %}
 
     </div>
