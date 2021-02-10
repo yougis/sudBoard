@@ -604,19 +604,6 @@ class StepConfiguration(param.Parameterized):
             css_classes=['panel-widget-box'],
             sizing_mode='stretch_width'),
 
-            pn.Column(
-                pn.Param(
-                    self.param,
-                    parameters=['filterTypeSelector'],
-                    widgets={'filterTypeSelector': pn.widgets.RadioButtonGroup},
-                    expand_button=False,
-                    expand=False,
-                    sizing_mode='stretch_width',
-                    show_name=False
-                ),
-                self.filter,
-                css_classes=['panel-widget-box'],
-                sizing_mode='stretch_width'),
         )
 
         return layout

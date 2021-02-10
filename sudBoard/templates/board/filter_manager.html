@@ -1,0 +1,12 @@
+<form action="{% block action_name %}{% endblock %}" method="post">
+    {% csrf_token %}
+<button type="submit" name="addFilter"><i class="fa fa-plus" aria-hidden="true"></i>  Ajouter un filtre</button>
+</form>
+
+<ul>
+    {% for target in targets %}
+    {% for filter in target.filterentity_set.all %}
+        <li>{{ filter.name }} '✎'</li>
+    {% endfor %}
+    {% endfor %}
+</ul>

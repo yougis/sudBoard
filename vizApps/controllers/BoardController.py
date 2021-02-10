@@ -40,63 +40,13 @@ class BoardController():
         return server_session(model=model, session_id=session_id, url=endPoint,
                                        headers=headers)
 
-
-    def routeAction(request,slug):
-        message = None
-        params = {}
-        # On regarde si c'est un POST ou un GET
-        if(request.method=="POST"):
-            editMode = True
-
-            if 'updateBoardConfig' in request.POST:
-                return BoardController.getBoardUpdateConfigModule(request, slug=slug)
-
-            if 'createView' in request.POST:
-                return BoardController.getViewCreatorModule(request, slug=slug)
-
-            if 'addData' in request.POST:
-                return BoardController.getDataLoaderModule(request)
-            elif 'save' in request.POST:
-                # on récuère la liste des vizApps de la session pour récupérer les VizEntity qui y sont attachées en mémoire
-                # on persiste les parametres des vizApp dans la VizEntity
-                # on fais ça pour toutes les VizEntity de la BoardEntity
-
-                #vizAppListe = VizConstructor.getVizAppInstancesBySessionId(request.COOKIES.get('session_id')+ request.COOKIES.get('board_id'))
-                #if vizAppListe:
-                #    for vizApp in vizAppListe:
-                #        viz = vizApp.viz_instance
-                #        viz.updateVizApp(vizApp)
-                #        viz.save()
-                #else:
-                #    message = "Aucune Viz à mettre à jour"
-                lumenDashboard= LumenDashboard.getinstancesBySessionId(request.COOKIES.get('session_id')+ request.COOKIES.get('board_id'))
-                if lumenDashboard:
-                    for lumenBoard in lumenDashboard:
-                        config = lumenBoard.dashBoard.config
-
-
-        elif(request.method=="GET"):
-
-            params['editMode']=request.GET.get('edit')
-            params['lumenMode'] = request.GET.get('lumen')
-
-        return BoardController.getBoardAppFromBoardSlug(request=request, slug=slug, message=message, params=params)
-
-    def getBoardUpdateConfigModule(request, **kwargs):
+    def createAllContextWithScript(request,**kwargs):
         base_uri = request.build_absolute_uri(location='/')
-
+        moduleName = kwargs.get('moduleName')
+        serviceName = kwargs.get('serviceName')
+        endPoint = f'{moduleName}/{serviceName}/'
+        slug= kwargs.get('slug')
         template = None
-        endPoint = 'studio/boardconfig/'
-        # on récupère l'url de l'application du Board du serveur Bokeh
-        bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + endPoint
-
-    def getViewCreatorModule(request, **kwargs):
-
-        base_uri = request.build_absolute_uri(location='/')
-        endPoint = "studio-pipeline/viewcreator/"
-
-        template = None
-
 
         session_id = request.COOKIES.get('session_id')
         if session_id == None:
@@ -109,7 +59,7 @@ class BoardController():
         board_id = request.COOKIES.get('board_id')
         board = BoardEntity.objects.get(id=board_id)
 
-        lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=session_id +board_id)
+        lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=session_id + board_id)
 
         if lumenDashBord:
             lumenDashBord = lumenDashBord.pop()
@@ -129,7 +79,7 @@ class BoardController():
         header = BoardController.getBokehModelByTag(listeOfBokehModel, 'header').pop()
         listeOfBokehModelWithNoTags = [obj for obj in root if len(obj.tags) == 0]
 
-        # on va chercher les autres composants Panels qui n'ont de tags définis
+        # on va chercher les autres composants Panels qui n'ont pas de tags définis
         js_area = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'js_area'].pop()
         busy_indicator = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'busy_indicator'].pop()
         location = [obj for obj in listeOfBokehModelWithNoTags if obj.name == 'location'].pop()
@@ -141,7 +91,8 @@ class BoardController():
 
         for scriptName in listeScriptToCreate:
             model = scriptName[1]
-            bokeh_server_url = BoardController.endPointConstructor(None,  kwargs.get('slug'), scriptName[0], base_uri, editMode=True,lumenMode=True)
+            bokeh_server_url = BoardController.endPointConstructor(None, slug, scriptName[0], base_uri,
+                                                                   editMode=True, lumenMode=True)
 
             script = BoardController.createBokehScript(model, session_id, headers, bokeh_server_url)
             server_script_Dict[scriptName[0]] = script
@@ -149,8 +100,8 @@ class BoardController():
         # on ajoute le script de la pipeline
         bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + endPoint
         pipeline = server_session(None, session_id=session_id, url=bokeh_server_url,
-                                       headers=headers)
-        server_script_Dict['main']=pipeline
+                                  headers=headers)
+        server_script_Dict['main'] = pipeline
 
         context = {
 
@@ -163,12 +114,63 @@ class BoardController():
         }
 
         # Création du context pour le template Jinja
-        context = {**context,**template_variables,**server_script_Dict}
+        return {**context, **template_variables, **server_script_Dict}
 
-        #template = render(request, 'view/view_creator.html', context)
-        template = render(request, 'board/board_edit.html', context)
+    def routeAction(request,slug):
+        message = None
+        params = {}
+        # On regarde si c'est un POST ou un GET
+        if(request.method=="POST"):
+            editMode = True
 
-        return template
+            if 'updateBoardConfig' in request.POST:
+                return BoardController.getBoardUpdateConfigModule(request, slug=slug)
+
+            if 'createView' in request.POST:
+                return BoardController.getViewCreatorModule(request, slug=slug)
+
+            if 'addFilter' in request.POST:
+                return BoardController.getFilterCreatorModule(request, slug=slug)
+
+            if 'addData' in request.POST:
+                return BoardController.getDataLoaderModule(request)
+            elif 'save' in request.POST:
+                lumenDashboard= LumenDashboard.getinstancesBySessionId(request.COOKIES.get('session_id')+ request.COOKIES.get('board_id'))
+                if lumenDashboard:
+                    for lumenBoard in lumenDashboard:
+                        config = lumenBoard.dashBoard.config
+                        # todo implementer un save de la config seulement
+
+
+        elif(request.method=="GET"):
+
+            params['editMode']=request.GET.get('edit')
+            params['lumenMode'] = request.GET.get('lumen')
+
+        return BoardController.getBoardAppFromBoardSlug(request=request, slug=slug, message=message, params=params)
+
+    def getBoardUpdateConfigModule(request, **kwargs):
+        base_uri = request.build_absolute_uri(location='/')
+
+        template = None
+        endPoint = 'studio/boardconfig/'
+        # on récupère l'url de l'application du Board du serveur Bokeh
+        bokeh_server_url = "%s" % (request.build_absolute_uri(location='/')) + endPoint
+
+    def getViewCreatorModule(request, **kwargs):
+
+        params = {'serviceName': 'viewcreator',
+                  'moduleName': "studio-pipeline"}
+        context = BoardController.createAllContextWithScript(request, **{**kwargs, **params})
+
+        return render(request, 'board/board_edit.html', context)
+
+    def getFilterCreatorModule(request, **kwargs):
+        params = {'serviceName':'filter-service',
+                  'moduleName':"studio-pipeline"}
+        context = BoardController.createAllContextWithScript(request,**{**kwargs, **params})
+
+        return render(request, 'board/board_edit.html', context)
 
     def getDataLoaderModule(request, editMode=True):
         template = None

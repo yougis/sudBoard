@@ -13,11 +13,6 @@ from sudBoard.settings import BASE_DIR
 from vizApps.domain.Board import BoardEntity
 
 from vizApps.services.lumen.util import SpecYamlCreator
-from vizApps.domain.lumen.view import ViewEntity
-from vizApps.domain.lumen.target import TargetEntity
-
-import vizApps.services.intake
-
 intakeSourceName = 'sql_auto'
 
 instancesList = []
@@ -260,7 +255,6 @@ class LumenDashboard(param.Parameterized):
                 spec = yaml.load(self.specfile)
                 yaml.dump(spec, file)
             self.specDoc = file
-
 
     def view(self):
         if not self.initialized:

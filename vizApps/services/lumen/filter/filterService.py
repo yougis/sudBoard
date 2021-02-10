@@ -1,21 +1,18 @@
 from . import *
 from vizApps.services.board.BoardService import getLumenDashBoard
 
-def getAppViewCreator(doc):
+def getAppFilter(doc):
     # todo if dev/qualif = debug true
     pipeline = pn.pipeline.Pipeline(debug=True)
     lumenDashboard = getLumenDashBoard(doc)
     monitors = lumenDashboard.dashBoard._targets
     target_list =  [monitor for monitor in monitors]
-    sources_list = getUniqueSourcesFromMonitors(target_list)
-    choiceSource = ChoiceSource(liste_des_sources = sources_list)
-    stepTransform = StepTransform(lumenDashboard=lumenDashboard)
+    choiceTarget = ChoiceTarget(liste=target_list)
+    stepFilter = StepFilter(lumenDashboard=lumenDashboard)
 
-    pipeline.add_stage("Séléction d'une source de donnée", choiceSource)
-    pipeline.add_stage("Transformer la donnée", stepTransform)
-    pipeline.add_stage("Configuration du graphique", StepConfiguration(lumenDashboard=lumenDashboard))
-
-    pipeline.add_stage("Terminer", StepSaveView(lumenDashboard=lumenDashboard, targets=[t for t in target_list], url=doc.session_context.request.headers['referer']))
+    pipeline.add_stage("Séléction de la cible du filtre", choiceTarget)
+    pipeline.add_stage("Configuration du filtre", stepFilter)
+    pipeline.add_stage("Terminer", StepSave(lumenDashboard=lumenDashboard, targets=[t for t in target_list], url=doc.session_context.request.headers['referer']))
     layout = pn.Column(
         pn.Row(pipeline.title, pn.layout.HSpacer(), pipeline.buttons),
         pipeline.stage

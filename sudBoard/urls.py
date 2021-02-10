@@ -20,6 +20,7 @@ from django.contrib.staticfiles.urls import staticfiles_urlpatterns
 from vizApps.services.board import BoardService
 from vizApps.services.dataSource import dataLoaderService
 from vizApps.services.lumen.view import viewService
+from vizApps.services.lumen.filter import filterService
 
 from vizApps.services.viz import VizService
 
@@ -49,8 +50,11 @@ bokeh_apps = [
 
     autoload(f"^studio/board/(?P<slug>[-a-zA-Z0-9_]+)/", BoardService.getAppEditMode),
     autoload(f"^studio/boardconfig/", BoardService.getAppBoardUpdateConfig),
+
+    # pipeline
     autoload(f"^studio-pipeline/dataloader/", dataLoaderService.getAppDataLoader),
     autoload(f"^studio-pipeline/viewcreator/", viewService.getAppViewCreator),
+    autoload(f"^studio-pipeline/filter-service/", filterService.getAppFilter),
 
     autoload(f"^board/(?P<slug>[-a-zA-Z0-9_]+)/vizentity/(?P<url>[-a-zA-Z0-9_]+)", VizService.getApp),
 ]
