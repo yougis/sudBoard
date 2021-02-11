@@ -1,0 +1,47 @@
+config:
+  layout: tabs
+  ncols: 1
+  template: material
+  theme: dark
+  title: HOIH
+sources:
+  geodata:
+    catalog:
+      sources:
+        geodata_queries:
+          args:
+            geopandas_kwargs:
+              geom_col: geometry
+            sql_expr: select *, public.ST_Centroid(public.ST_transform(tuile,3857))
+              as geometry from geodata.geodata_queries where tuile is not null and date > now() - interval '3 hours' LIMIT 30000
+            table: geodata.geodata_queries
+            uri: postgresql://geodata:geodata@pgsql1-prod.province-sud.prod:5432/geodata
+          description: ''
+          driver: intake_geopandas.geopandas.PostGISSource
+    type: intake
+targets:
+- filters:
+  - field: direction
+    type: widget
+  name: titi
+  source: geodata
+  title: titi
+  views:
+  - alpha: 0.1
+    datashade: true
+    kind: points
+    table: geodata_queries
+    tiles: CartoLight
+    title: Datashade
+    width: 1400
+    height: 800
+    transforms:
+    - columns:
+      - date
+      - direction
+      - resolution
+      - geometry
+      type: columns
+    type: hvplot
+    xaxis: null
+    yaxis: null

@@ -1,0 +1,53 @@
+config:
+  layout: tabs
+  ncols: 1
+  template: material
+  theme: default
+  title: LALA
+targets:
+- name: titi
+  width_policy: max
+  layout: [[0], [1]]
+  source:
+    type: intake
+    uri: /home/yogis/Apps/psud/sudBoard/vizApps/services/intake/catalog.yml
+  title: titi
+  views:
+  - type: table
+    table: autorisation_ouvrage_eau
+    pagination : remote
+    rot: 45
+    title: ''
+    transforms:
+      - by : Date du dernier arrêté
+        to_date : Date du dernier arrêté
+        type: sort
+      - columns:
+          - Etat administratif
+          - "Num\xE9ro dossier GERE"
+          - "Num\xE9ro ouvrage GERE"
+          - Date du dernier arrêté
+        type: columns
+  - type: hvplot
+    kind: line
+    width: 1400
+    table: autorisation_ouvrage_eau
+    x: Date du dernier arrêté
+    y: Débit de prélèvement  maximum autorisé m3/J
+    rot: 45
+    title: 'progression'
+    hover_cols:
+      - Etat administratif
+      - Numéro d'arrêté d'autorisation
+      - Numéro dossier GERE
+    transforms:
+      - by : Date du dernier arrêté
+        to_date : Date du dernier arrêté
+        type: sort
+      - columns:
+          - Etat administratif
+          - Débit de prélèvement  maximum autorisé m3/J
+          - Date du dernier arrêté
+          - Numéro d'arrêté d'autorisation
+          - Numéro dossier GERE
+        type: columns
