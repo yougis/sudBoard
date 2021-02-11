@@ -48,7 +48,6 @@ def getMainLumenEditor(doc):
 
     template = getLumenTemplate(doc)
     layout = template.main.objects[0]
-    #layout = getLumenDashBoard(doc).dashBoard.layout()
     layout.server_doc(doc)
 
 
@@ -63,14 +62,11 @@ def getSideBarLumenEditor(doc):
     layout = pn.Column(sizing_mode='stretch_width')
     layout.append(getLumenDashBoard(doc).panel())
     layout.append(template.sidebar.objects[0])
-
-    #template._js_area.server_doc(doc)
     layout.server_doc(doc)
 
 def getModalLumenEditor(doc):
     template = getLumenTemplate(doc)
     layout = template.modal.objects[0]
-    #template._js_area.server_doc(doc)
     layout.server_doc(doc)
 
 def getJsAreaLumenEditor(doc):
@@ -87,7 +83,6 @@ def getBusyIndicatorLumenEditor(doc):
 def getLocationLumenEditor(doc):
     template = getLumenTemplate(doc)
     layout = template.location.objects[0]
-    # template._js_area.server_doc(doc)
     layout.server_doc(doc)
 
 def getAppBoardUpdateConfig(doc):
@@ -210,7 +205,7 @@ def getBoard(id):
     return board
 
 def save():
-    return "ok"
+    return "not implemented yet"
 
 def clearCache():
 

@@ -1,0 +1,58 @@
+config:
+  layout: grid
+  ncols: 1
+  template: material
+  theme: dark
+  title: HOIH
+sources:
+  geodata:
+    type: intake
+    catalog:
+      sources:
+        geodata_queries_centroid:
+          args:
+            geopandas_kwargs:
+              geom_col: geometry
+            sql_expr: select *, public.ST_Centroid(public.ST_transform(tuile,3857))
+              as geometry, 1 as count from geodata.geodata_queries where tuile is not null and date > now() - interval '10 min'
+            table: geodata.geodata_queries
+            uri: postgresql://geodata:geodata@pgsql1-prod.province-sud.prod:5432/geodata
+          description: ''
+          driver: intake_geopandas.geopandas.PostGISSource
+        geodata_queries:
+          args:
+            sql_expr: select *, 1 as count from geodata.geodata_queries where tuile is not null and date > now() - interval '10 min'
+            uri: postgresql://geodata:geodata@pgsql1-prod.province-sud.prod:5432/geodata
+          description: 'Geodata queries'
+          driver: intake_sql.intake_sql.SQLSource
+targets:
+  - filters:
+      - field: direction
+        type: widget
+    layout: row
+    name: titi
+    source: geodata
+    facet_layout: tabs
+    views:
+    - alpha: 0.50
+      height: 800
+      kind: points
+      c: referer_appli
+      legend: bottom
+      table: geodata_queries_centroid
+      title: Applications concernées
+      tools:
+        - tap
+      type: hvplot
+      xaxis: null
+      yaxis: null
+    - type: hvplot
+      kind: bar
+      title: Nombre de requettes
+      table: geodata_queries
+      transforms:
+        - by: referer_appli
+          columns:
+            - count
+          type: aggregate
+          method: sum

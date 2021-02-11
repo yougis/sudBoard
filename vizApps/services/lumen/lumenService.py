@@ -25,7 +25,7 @@ class LumenDashboard(param.Parameterized):
     ncols = param.Integer(label='Nombre de colonne', default=2)
     theme = param.ObjectSelector(label="Theme", objects=['default','dark'], default='default')
     template = param.String(default="material",precedence=-1)
-    logo = param.FileSelector(precedence=-1)
+    #logo = param.FileSelector(precedence=-1)
     specfile = param.FileSelector()
     specDoc = param.Parameter(precedence=-1)
 
@@ -42,6 +42,8 @@ class LumenDashboard(param.Parameterized):
 
     @param.depends('specDoc', watch=True)
     def updateSpec(self):
+        spinner = pn.indicators.LoadingSpinner(width=40, height=40)
+        pn.state.sync_busy(spinner)
         if hasattr(self, 'dashBoard'):
             self.dashBoard.specification = self.specDoc.name
             self.dashBoard._load_config(from_file=True)
@@ -255,6 +257,7 @@ class LumenDashboard(param.Parameterized):
                 spec = yaml.load(self.specfile)
                 yaml.dump(spec, file)
             self.specDoc = file
+            ...
 
     def view(self):
         if not self.initialized:
@@ -264,17 +267,15 @@ class LumenDashboard(param.Parameterized):
             self.ncols = config.get("ncols")
             self.theme = config.get("theme")
             self.template = config.get("template")
-            self.logo = config.get("logo")
+            #self.logo = config.get("logo")
             self.initialized = True
 
     def panel(self):
         layout = pn.Column(
             pn.Param(
                 self.param,
-                #parameters=[],
                 widgets={
-                    #'title': pn.widgets.TextInput(placeholder="Indiquer le titre du DashBoard"),
-                    'logo': pn.widgets.FileInput(accept='.jpg,.png,.ico,.gif',name="Logo"),
+                    #'logo': pn.widgets.FileInput(accept='.jpg,.png,.ico,.gif',name="Logo"),
                     'specfile': pn.widgets.FileInput(accept='.yaml,.yml', name="Specification File")},
                 show_name=False,
                 expand_button=False,
