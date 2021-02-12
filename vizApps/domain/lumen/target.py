@@ -17,7 +17,8 @@ class TargetEntity(models.Model):
         views = [view.specYaml for view in self.viewentity_set.all()]
         filters = [filter.specYaml for filter in self.filterentity_set.all()]
         source = {'type': 'intake',
-                  'uri': os.path.join(path, 'catalog.yml')
+                  'uri': os.path.join(path, 'catalog.yml'),
+                  'dask': False
                   }
 
         return {'name':self.name,'title':self.name, 'source':source,'views' : views, 'filters':filters}

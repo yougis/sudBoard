@@ -18,7 +18,6 @@ widgetsDic = {
     'widget': [pn.widgets.Select(name='field'),
                pn.widgets.Toggle(name='multi'),
                pn.widgets.Toggle(name='empty_select'),
-               #pn.widgets.Select(name='default')
                ],
     'constant': [pn.widgets.Select(name='field')],
 

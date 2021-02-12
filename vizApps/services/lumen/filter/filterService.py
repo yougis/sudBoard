@@ -15,7 +15,9 @@ def getAppFilter(doc):
     pipeline.add_stage("Terminer", StepSave(lumenDashboard=lumenDashboard, targets=[t for t in target_list], url=doc.session_context.request.headers['referer']))
     layout = pn.Column(
         pn.Row(pipeline.title, pn.layout.HSpacer(), pipeline.buttons),
-        pipeline.stage
+        pipeline.stage,
+        sizing_mode='stretch_width',
+        width_policy='max'
     )
     layout.server_doc(doc)
 

@@ -50,8 +50,7 @@ widgetsDic = {
     
     "aggregate": [pn.widgets.Select(name='by'),
                   pn.widgets.MultiSelect(name='columns'),
-                  pn.widgets.Select(name='method', options=aggregateMethods),
-                  pn.widgets.Checkbox(name='dropna')],
+                  pn.widgets.Select(name='method', options=aggregateMethods)],
     "sort": [pn.widgets.Select(name='by'),
              pn.widgets.Checkbox(name='ascending')],
     "columns": [pn.widgets.MultiSelect(name='columns')],
@@ -171,7 +170,6 @@ class UrlInput(param.String):
 class ChoiceInList():
     liste = param.ObjectSelector()
     def __init__(self, **params):
-        #super(ChoiceTarget, self).__init__(**params)
         self.init = True
         for k, v in params.items():
             if k in self.param:
@@ -223,21 +221,28 @@ class ChoiceSource(param.Parameterized):
         if self.liste_des_sources:
             plot = self.liste_des_sources.plot.graphique_default()
 
-            plot.opts(toolbar='above',default_tools=['box_select','wheel_zoom','reset'],active_tools=['tap','wheel_zoom'])
+            plot.opts(toolbar='above',
+                      default_tools=['box_select','wheel_zoom','reset'],
+                      active_tools=['tap','wheel_zoom'])
 
             layout.append(('Graphique',
-                           pn.Row(plot,sizing_mode='stretch_width')))
+                           pn.Row(plot,sizing_mode='stretch_width',width_policy='max')))
 
             dataTable = self.liste_des_sources._dataframe
             if hvplot.util.is_geodataframe(dataTable):
                 dataTable = pd.DataFrame(dataTable.drop(['geometry'], axis=1))
 
-            table = hv.Table(dataTable,sizing_mode='stretch_width').opts(height=650, width=1500)
+            #table = hv.Table(dataTable).opts()
+            table= pn.widgets.tables.Tabulator(
+                value=dataTable.compute(),
+                sizing_mode='stretch_width',
+                pagination="remote",
+                selectable=False,
+                theme='materialize')
 
             layout.append(('Table',
-                           pn.Row(table)))
-            if len(plot) == len(table):
-                DataLink(plot, table)
+                           pn.Row(table,sizing_mode='stretch_width',width_policy='max')))
+
             return layout
         else:
             layout = pn.Column(pn.pane.HTML(f'Aucun catalogue disponible'), sizing_mode='stretch_width')
@@ -259,7 +264,8 @@ class ChoiceSource(param.Parameterized):
             self.view,
 
             css_classes=['panel-widget-box'],
-            sizing_mode='stretch_width')
+            sizing_mode='stretch_width',
+            width_policy='max')
         return self.layout
 
 class StepTransform(param.Parameterized):
@@ -315,6 +321,7 @@ class StepTransform(param.Parameterized):
             if hasattr(self, 'panelWidgets'):
                 self.transformTypeParameters = {p.name: getattr(self, p.name) for p in self.panelWidgets}
                 self.transformTypeParameters['type'] = transform_type
+                self.transformTypeParameters['width_policy'] = 'max'
 
         self.config = {
             'title': self.lumenDashboard.title,
@@ -330,6 +337,7 @@ class StepTransform(param.Parameterized):
 
         target_param = [{
             'title': 'Nouveau',
+            'width_policy': 'max',
             'views': [viewParameters],
             'filters': [
             ]
@@ -515,7 +523,7 @@ class StepConfiguration(param.Parameterized):
             except Exception as e:
                 print(e)
 
-        return pn.Column(self.dashboard._targets[0]._cards[0], sizing_mode='stretch_width')
+        return pn.Column(self.dashboard._targets[0]._cards[0], sizing_mode='stretch_width',width_policy='max')
 
     def view(self):
 
@@ -542,6 +550,7 @@ class StepConfiguration(param.Parameterized):
                 parameters=[str(panelWidget.name).lower() for panelWidget in self.panelWidgets],
                 widgets={panelWidget.name: panelWidget for panelWidget in self.panelWidgets},
                 sizing_mode='stretch_width',
+                width_policy = 'max',
                 show_name=False,
                 expand_button=False,
                 expand=False,
@@ -602,8 +611,8 @@ class StepConfiguration(param.Parameterized):
             self.view,
             self.dashviz,
             css_classes=['panel-widget-box'],
-            sizing_mode='stretch_width'),
-
+            sizing_mode='stretch_width'
+            )
         )
 
         return layout
