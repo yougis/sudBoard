@@ -51,10 +51,11 @@ class  GeomUtil():
         if len([el for el in list(dataframe) if el.casefold() in GEOMLABEL]) > 0:
             return True
 
-    def getLabelGeom(self, dataframe):
+    @classmethod
+    def getLabelGeom(cls,dataframe):
         eval = [el for el in list(dataframe) if el.casefold() in GEOMLABEL]
         if len(eval) > 0:
-            self.labelGeom = eval[0]
+            dataframe.labelGeom = eval[0]
             return eval[0]
 
     def getMetaGeomFromDataFrame(self, serie):

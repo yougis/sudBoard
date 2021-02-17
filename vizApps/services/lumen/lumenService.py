@@ -25,18 +25,22 @@ class LumenDashboard(param.Parameterized):
     ncols = param.Integer(label='Nombre de colonne', default=2)
     theme = param.ObjectSelector(label="Theme", objects=['default','dark'], default='default')
     template = param.String(default="material",precedence=-1)
-    #logo = param.FileSelector(precedence=-1)
     specfile = param.FileSelector()
+    config = param.Parameter(precedence=-1)
     specDoc = param.Parameter(precedence=-1)
 
     def __init__(self, **kwargs):
         super(LumenDashboard, self).__init__(**kwargs)
         boardId=kwargs['board']
-        self.initialized = False
-
         self.board = BoardEntity.objects.get(id=boardId)
         self._session = kwargs.get('sessionId')+ str(boardId)
         self.specDoc = self.createSpecFromData()
+        self.config = yaml.load(self.dashBoard._yaml)['config']
+        self.title = self.config.get("title")
+        self.layout = self.config.get("layout")
+        self.ncols = self.config.get("ncols")
+        self.theme = self.config.get("theme")
+        self.template = self.config.get("template")
 
         instancesList.append(self)
 
@@ -44,15 +48,17 @@ class LumenDashboard(param.Parameterized):
     def updateSpec(self):
         spinner = pn.indicators.LoadingSpinner(width=40, height=40)
         pn.state.sync_busy(spinner)
-        if hasattr(self, 'dashBoard'):
-            self.dashBoard.specification = self.specDoc.name
-            self.dashBoard._load_config(from_file=True)
-            try:
-                self.dashBoard._reload()
-            except(Exception) as e:
-                print(e)
-        else:
-            self.dashBoard = Dashboard(specification=self.specDoc.name)
+        self.dashBoard = Dashboard(specification=self.specDoc.name)
+        #if hasattr(self, 'dashBoard'):
+        #    self.dashBoard.specification = self.specDoc.name
+        #    self.dashBoard._load_config(from_file=True)
+        #    try:
+        #        #self.dashBoard = Dashboard(specification=self.specDoc.name)
+        #        self.dashBoard._reload()
+        #    except(Exception) as e:
+        #        print(e)
+        #else:
+        #    self.dashBoard = Dashboard(specification=self.specDoc.name)
 
     def createSpecFromData(self):
 
@@ -257,18 +263,24 @@ class LumenDashboard(param.Parameterized):
                 spec = yaml.load(self.specfile)
                 yaml.dump(spec, file)
             self.specDoc = file
-            ...
 
     def view(self):
-        if not self.initialized:
-            config = yaml.load(self.dashBoard._yaml)['config']
-            self.title = config.get("title")
-            self.layout = config.get("layout")
-            self.ncols = config.get("ncols")
-            self.theme = config.get("theme")
-            self.template = config.get("template")
-            #self.logo = config.get("logo")
-            self.initialized = True
+        self.config = {'title':self.title,
+                       'layout':self.layout,
+                       'ncols':self.ncols,
+                       'theme':self.theme,
+                       'template':self.template}
+
+    @param.depends('config', watch=True)
+    def updateConfig(self):
+        if self.specDoc.name is not None:
+            with open(self.specDoc.name, 'r') as f:
+                _yaml = yaml.load(f.read())
+                _yaml['config'] = self.config
+
+            with open(r'specYamlFile/temp/new_dashboard_{}.yml'.format(self._session), 'w') as f:
+                yaml.dump(_yaml,f)
+                self.specDoc = f
 
     def panel(self):
         layout = pn.Column(
