@@ -48,17 +48,16 @@ class LumenDashboard(param.Parameterized):
     def updateSpec(self):
         spinner = pn.indicators.LoadingSpinner(width=40, height=40)
         pn.state.sync_busy(spinner)
-        self.dashBoard = Dashboard(specification=self.specDoc.name)
-        #if hasattr(self, 'dashBoard'):
-        #    self.dashBoard.specification = self.specDoc.name
-        #    self.dashBoard._load_config(from_file=True)
-        #    try:
-        #        #self.dashBoard = Dashboard(specification=self.specDoc.name)
-        #        self.dashBoard._reload()
-        #    except(Exception) as e:
-        #        print(e)
-        #else:
-        #    self.dashBoard = Dashboard(specification=self.specDoc.name)
+        if hasattr(self, 'dashBoard'):
+            self.dashBoard.specification = self.specDoc.name
+            self.dashBoard._load_config(from_file=True)
+            try:
+                self.dashBoard = Dashboard(specification=self.specDoc.name)
+                self.dashBoard._reload()
+            except(Exception) as e:
+                print(e)
+        else:
+            self.dashBoard = Dashboard(specification=self.specDoc.name)
 
     def createSpecFromData(self):
 
