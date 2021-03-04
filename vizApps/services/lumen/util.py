@@ -42,7 +42,8 @@ def centerContentGrid(content):
     return gspec
 
 def centerContent(content, type='equal'):
-    r = CENTER_TYPE.get(type)
+    #r = CENTER_TYPE.get(type)
+    r = pn.Spacer(sizing_mode='stretch_width')
     layout = pn.Row(r, content, r)
     return layout
 

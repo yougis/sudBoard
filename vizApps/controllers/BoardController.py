@@ -66,7 +66,7 @@ class BoardController():
         else:
             lumenDashBord = LumenDashboard(board=board.id, sessionId=session_id)
 
-        template = lumenDashBord.dashBoard.template
+        template = lumenDashBord.dashBoard._template
         template.header_background = psud_branding['header_background']
         doc = template._init_doc()
         template_variables = doc.template_variables
@@ -241,7 +241,6 @@ class BoardController():
 
         # on récupère les variables du templates pour les injecter dans le template Django
         ## on instancie un lumenDashboard si besoin
-        #LumenDashboard.clearInstancesForSession(sessionId=session_id + str(board.id))
         lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=session_id+str(board.id))
 
         if lumenDashBord:
@@ -249,13 +248,7 @@ class BoardController():
         else:
             lumenDashBord = LumenDashboard(board=board.id, sessionId=session_id)
 
-
-
-        #if len(targets)==0 and edit:
-        #    return render(request, 'board/board_edit.html',context)
-
-
-        template = lumenDashBord.dashBoard.template
+        template = lumenDashBord.dashBoard._template
         template.header_background = psud_branding['header_background']
 
         doc=template._init_doc()

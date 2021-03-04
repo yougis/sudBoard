@@ -5,7 +5,7 @@ def getAppViewCreator(doc):
     # todo if dev/qualif = debug true
     pipeline = pn.pipeline.Pipeline(debug=True)
     lumenDashboard = getLumenDashBoard(doc)
-    monitors = lumenDashboard.dashBoard._targets
+    monitors = lumenDashboard.dashBoard.targets
     target_list =  [monitor for monitor in monitors]
     sources_list = getUniqueSourcesFromMonitors(target_list)
     choiceSource = ChoiceSource(liste_des_sources = sources_list)

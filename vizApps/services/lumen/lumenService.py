@@ -4,10 +4,7 @@ import panel as pn
 import param
 from lumen.dashboard import Dashboard
 from lumen.filters import ConstantFilter, Filter, WidgetFilter  # noqa
-from lumen.monitor import Monitor  # noqa
 from lumen.sources import Source, RESTSource  # noqa
-from lumen.transforms import Transform  # noqa
-from lumen.views import View  # noqa
 
 from sudBoard.settings import BASE_DIR
 from vizApps.domain.Board import BoardEntity
@@ -50,10 +47,10 @@ class LumenDashboard(param.Parameterized):
         pn.state.sync_busy(spinner)
         if hasattr(self, 'dashBoard'):
             self.dashBoard.specification = self.specDoc.name
-            self.dashBoard._load_config(from_file=True)
+            self.dashBoard._load_specification(from_file=True)
             try:
                 self.dashBoard = Dashboard(specification=self.specDoc.name)
-                self.dashBoard._reload()
+                #self.dashBoard._reload()
             except(Exception) as e:
                 print(e)
         else:
@@ -270,7 +267,7 @@ class LumenDashboard(param.Parameterized):
                        'theme':self.theme,
                        'template':self.template}
 
-    @param.depends('config', watch=True)
+    #@param.depends('config', watch=True)
     def updateConfig(self):
         if self.specDoc.name is not None:
             with open(self.specDoc.name, 'r') as f:

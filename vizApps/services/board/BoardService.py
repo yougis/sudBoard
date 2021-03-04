@@ -40,14 +40,18 @@ def getLumenDashBoard(doc):
         return LumenDashboard(board=boardId, sessionId=sessionId)
 
 def getLumenTemplate(doc):
-    template=getLumenDashBoard(doc).dashBoard.template
+    template=getLumenDashBoard(doc).dashBoard._template
     return template
 
 
 def getMainLumenEditor(doc):
 
     template = getLumenTemplate(doc)
-    layout = template.main.objects[0]
+    if isinstance(template.main.objects, list):
+        layout = template.main.objects[0]
+    elif isinstance(template.main.objects, dict):
+        layout = next(iter(template.main.objects.items()))[1].layout
+
     layout.server_doc(doc)
 
 

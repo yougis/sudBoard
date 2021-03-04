@@ -177,8 +177,8 @@ class StepFilter(param.Parameterized):
                 yaml.dump(self.spec.get_dic(), file)
 
             try:
-                self.dashboard.specification = file.name
-                self.dashboard._load_config(from_file=True)
+                self.dashboard._yaml_file = file.name
+                self.dashboard._load_specification(from_file=True)
                 self.dashboard._reload()
             except ValueError as v:
                 print(v)
@@ -188,7 +188,7 @@ class StepFilter(param.Parameterized):
                 print(e)
 
         return pn.Column(
-            self.dashboard._targets[0].filter_panel,
+            self.dashboard.targets[0].filter_panel,
             show_name=False,
             sizing_mode='stretch_width')
 
@@ -239,8 +239,6 @@ class StepFilter(param.Parameterized):
         filter_type = self.filterTypeSelector.filter_type
         self.filterTypeParameters = {p.name: getattr(self, p.name) for p in self.panelWidgets}
 
-       #if self.filterTypeParameters.get('multi'):
-       #    self.filterTypeParameters['default']=[]
         self.filterTypeParameters['type'] = filter_type
 
         self.config = {
@@ -281,14 +279,15 @@ class StepFilter(param.Parameterized):
 
         return layout
 
-    @param.output(specification=param.Dict())
+    @param.output(specification=param.Dict(), target=param.Parameter())
     def output(self):
         spec = self.spec.get_dic()
-        return spec
+        return spec, self.target
 
 
 class StepSave(param.Parameterized):
     specification = param.Dict()
+    target = param.Parameter()
 
     url = param.String()
 
@@ -332,7 +331,7 @@ class StepSave(param.Parameterized):
 
         # Target
 
-        targetEntity = next(t for t in board.targetentity_set.all() if t.name == self.targets)
+        targetEntity = next(t for t in board.targetentity_set.all() if t.name == self.target)
 
 
         # Filters
@@ -357,18 +356,9 @@ class StepSave(param.Parameterized):
     def _boutonFinish(self, event=None):
         pass
 
-    @param.depends('toExistingTarget')
+
     def view(self):
-        if self.toExistingTarget:
-            return pn.Column(pn.Param(self.param.targets,
-                                      show_labels=False,
-                                      show_name=False,
-                                      expand_button=False,
-                                      expand=False,
-                                      sizing_mode='stretch_width'
-                                      ), sizing_mode='stretch_width')
-        else:
-            return pn.Column(sizing_mode='stretch_width')
+        ...
 
     def panel(self):
 
@@ -383,10 +373,8 @@ class StepSave(param.Parameterized):
         return pn.Column(
             pn.Param(
                 self.param,
-                parameters=['targetName', 'toExistingTarget', 'boutonSave', 'boutonFinish'],
+                parameters=[ 'boutonSave', 'boutonFinish'],
                 widgets={
-                    "toExistingTarget": pn.widgets.button.Toggle(
-                        name="Intégrer la représentation à un moniteur existant"),
                     "boutonSave": boutonSave,
                     "boutonFinish": boutonFinish
                 },
