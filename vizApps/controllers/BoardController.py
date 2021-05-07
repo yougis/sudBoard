@@ -9,9 +9,9 @@ from vizApps.services.board import BoardService
 from vizApps.domain.Trace import TraceEntity
 from vizApps.domain.lumen.target import TargetEntity
 
-from vizApps.services.lumen.lumenService import LumenDashboard
+import lumen
 
-import vizApps.services.viz.VizInstanceService as VizConstructor
+from vizApps.services.lumen.lumenService import LumenDashboard
 
 psud_branding = {'header_background':'#002f87'}
 
@@ -241,14 +241,14 @@ class BoardController():
 
         # on récupère les variables du templates pour les injecter dans le template Django
         ## on instancie un lumenDashboard si besoin
-        lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=session_id+str(board.id))
+        #lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=session_id+str(board.id))
+#
+        #if lumenDashBord:
+        #    lumenDashBord = lumenDashBord.pop()
+        #else:
+        #    lumenDashBord = LumenDashboard(board=board.id, sessionId=session_id)
 
-        if lumenDashBord:
-            lumenDashBord = lumenDashBord.pop()
-        else:
-            lumenDashBord = LumenDashboard(board=board.id, sessionId=session_id)
-
-        template = lumenDashBord.dashBoard._template
+        template = lumen.Dashboard(specification="specYamlFile/default/nouveau_dashboard_default_config.yml")._template
         template.header_background = psud_branding['header_background']
 
         doc=template._init_doc()
@@ -272,7 +272,7 @@ class BoardController():
 
         # génération des scripts
         server_script_Dict = {}
-        listeScriptToCreate = [('sidebar', nav),('modal',modal),('header',header),('main',main),('js_area',js_area),('busy_indicator',busy_indicator)]
+        listeScriptToCreate = [('sidebar', nav),('modal',modal),('header',header),('js_area',js_area),('busy_indicator',busy_indicator),('main',main)]
 
 
         for scriptName in listeScriptToCreate:
@@ -321,7 +321,6 @@ class BoardController():
         response = render(request, 'board/board_edit.html', context)
         response.set_cookie('session_id',session_id, 'SameSite','Lax')
         return response
-
 
     def cleanCache(self):
         response = BoardService.clearCache()

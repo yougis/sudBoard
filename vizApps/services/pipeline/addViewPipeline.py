@@ -807,6 +807,7 @@ class StepSaveView(param.Parameterized):
             css_classes=['panel-widget-box'],
             sizing_mode='stretch_width')
 
+### OLD
 class ChoiceConnector(param.Parameterized):
     liste_connecteur = param.Selector(objects=[i for i, k in CONNECTOR_LIST[:]])
     widget_connector = param.String(precedence=0)

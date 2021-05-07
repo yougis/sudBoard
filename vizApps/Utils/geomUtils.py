@@ -29,7 +29,7 @@ GEOMLABEL = [
 from cartopy import crs as ccrs
 from shapely import wkt, wkb
 import geopandas as gpd
-import spatialpandas as spd
+#import spatialpandas as spd
 import pandas as pd
 
 

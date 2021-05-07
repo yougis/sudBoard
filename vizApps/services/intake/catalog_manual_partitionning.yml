@@ -1,0 +1,14 @@
+sources:
+  sql_manual:
+    args:
+      sql_expr: select * from agb.autorisation_ouvrage_eau
+      uri: postgresql://admsig@pgsql2-prod.province-sud.prod:5432/ddr
+      where_template: WHERE id >= {} AND id < {}
+      where_values:
+      - - 0
+        - 100
+      - - 100
+        - (SELECT count(*) FROM agb.autorisation_ouvrage_eau)
+    description: ''
+    driver: intake_sql.intake_sql.SQLSourceManualPartition
+    metadata: {}

@@ -1,0 +1,132 @@
+sources:
+  autorisation_ouvrage_eau:
+    args:
+      index: id
+      sql_kwargs:
+        schema: agb
+      table: autorisation_ouvrage_eau
+      uri: postgresql://admsig@pgsql2-prod.province-sud.prod:5432/ddr
+    description: Autorisation d'ouvrage eau
+    driver: intake_sql.intake_sql.SQLSourceAutoPartition
+    metadata:
+      plots:
+        graphique_default:
+          responsive: True
+          min_width: 400
+          min_height: 500
+          kind: scatter
+          tools:
+          - tap
+          x: Type ouvrage
+          y: "D\xE9bit de pr\xE9l\xE8vement  maximum autoris\xE9 m3/J"
+  geom_autorisation_ouvrage_eau:
+    args:
+      geopandas_kwargs:
+        geom_col: geometry
+      sql_expr: select *,public.ST_transform(geom,3857) as geometry from agb.autorisation_ouvrage_eau
+        where geom is not null
+      table: agb.autorisation_ouvrage_eau
+      uri: postgresql://admsig@pgsql2-prod.province-sud.prod:5432/ddr
+    description: "Donn\xE9e spatiale Autorisation d'ouvrage eau"
+    driver: intake_geopandas.geopandas.PostGISSource
+    metadata:
+      plots:
+        graphique_default:
+          responsive: True
+          min_width: 400
+          min_height: 500
+          alpha: 0.4
+          c: Type ouvrage
+          hover: true
+          hover_cols:
+          - "Num\xE9ro ouvrage GERE"
+          legend: bottom
+          s: "D\xE9bit de pr\xE9l\xE8vement  maximum autoris\xE9 m3/J"
+          scale: 0.4
+          tiles: CartoLight
+          tools:
+          - tap
+          xaxis: null
+          yaxis: null
+  parcelle_fruits_prioritaires:
+    args:
+      index: identifiant
+      sql_kwargs:
+        columns:
+        - id
+        - statut
+        - date_realisation
+        - production
+        - etiquette
+        - exploitation
+        - surface_estimee
+        - coeff_technicite
+        - variete
+        - nombre
+        - paturage
+        - aide
+        - faire_valoir
+        - certification_bio
+        schema: agb
+      table: parcelle_fruits_prioritaires
+      uri: postgresql://admsig@pgsql2-prod.province-sud.prod:5432/ddr
+    description: Parcelle fruits prioritaires
+    driver: intake_sql.intake_sql.SQLSourceAutoPartition
+    metadata:
+      plots:
+        graphique_default:
+          responsive: True
+          min_width: 400
+          min_height: 500
+          alpha: 0.5
+          by: etiquette
+          cmap: Category20
+          kind: scatter
+          tools:
+          - tap
+          x: aide
+          y: nombre
+
+  geom_referentiel_commune:
+    args:
+      geopandas_kwargs:
+        geom_col: geometry
+      sql_expr: select *, public.ST_transform(zone_terrestre,3857)
+        as geometry from ref.ref_commune_nc
+      table: ref.ref_commune_nc
+      uri: postgresql://ref:ref@pgsql1-prod.province-sud.prod:5432/ref
+    description: ''
+    driver: intake_geopandas.geopandas.PostGISSource
+
+  geom_stations_meteo:
+    args:
+      geopandas_kwargs:
+        geom_col: geom2
+      sql_expr: select nom_usuel, numero_pos, altitude, parametres, commune, public.ST_transform(geom,3857)
+        as geom2 from meteo.stations_meteo
+      table: meteo.stations_meteo
+      uri: postgresql://admsig:admsig@pgsql2-prod.province-sud.prod:5432/ddr
+    description: ''
+    driver: intake_geopandas.geopandas.PostGISSource
+  referentiel_commune:
+    args:
+      index : code_communal
+      sql_kwargs:
+        schema: ref
+      table: ref_commune_nc
+      uri: postgresql://ref:ref@pgsql1-prod.province-sud.prod:5432/ref
+    description: ''
+    driver: intake_sql.intake_sql.SQLSourceAutoPartition
+  stations_meteo:
+    args:
+      index: gid
+      sql_kwargs:
+        schema: meteo
+        columns:
+        - commune
+        - prop
+        - etat
+      table: stations_meteo
+      uri: postgresql://admsig:admsig@pgsql2-prod.province-sud.prod:5432/ddr
+    description: Station meteo
+    driver: intake_sql.intake_sql.SQLSourceAutoPartition

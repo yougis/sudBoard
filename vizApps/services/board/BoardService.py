@@ -2,9 +2,9 @@ import panel as pn
 from vizApps.domain.Board import BoardEntity
 from vizApps.domain.Trace import TraceEntity
 import vizApps.services.viz.VizInstanceService as VizConstructor
-from vizApps.services.DataConnectorSevice import ConnectorInterface, SAMPLE, FULL
 from vizApps.services.lumen.lumenService import LumenDashboard
 import os
+
 
 
 def getApp(doc):
@@ -17,8 +17,10 @@ def getApp(doc):
             layout.append(pn.Row(traceParam.view))
     layout.server_doc(doc)
 
-def tabSelectioncallback(target,event):
+
+def tabSelectioncallback(target, event):
     target.object = event
+
 
 def getAppLumenMode(doc):
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
@@ -33,65 +35,76 @@ def getLumenDashBoard(doc):
 
     boardId = doc.session_context.request.cookies["board_id"]
     sessionId = doc.session_context.request.cookies['session_id']
-    lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=sessionId+str(boardId))
+    JOSSO_SESSIONID = doc.session_context.request.cookies['JOSSO_SESSIONID']
+    lumenDashBord = LumenDashboard.getinstancesBySessionId(sessionId=sessionId + str(boardId))
     if lumenDashBord:
         return lumenDashBord.pop()
     else:
-        return LumenDashboard(board=boardId, sessionId=sessionId)
+        return LumenDashboard(board=boardId, sessionId=sessionId, JOSSO_SESSIONID=JOSSO_SESSIONID)
+
 
 def getLumenTemplate(doc):
-    template=getLumenDashBoard(doc).dashBoard._template
+    template = getLumenDashBoard(doc).dashBoard._template
     return template
 
 
 def getMainLumenEditor(doc):
+    lumenDashboard = getLumenDashBoard(doc)
 
-    template = getLumenTemplate(doc)
-    if isinstance(template.main.objects, list):
-        layout = template.main.objects[0]
-    elif isinstance(template.main.objects, dict):
-        layout = next(iter(template.main.objects.items()))[1].layout
+    layout = pn.Column(lumenDashboard.initializerCallback, lumenDashboard.main,
+                       sizing_mode = 'stretch_both',
+                       margin = 10,
+                       width_policy= 'max',
+                       min_height = 700
+    )
 
     layout.server_doc(doc)
+
 
 
 def getHeaderLumenEditor(doc):
-    template = getLumenTemplate(doc)
-    layout = template.header.objects[0]
-    layout.append(template._js_area)
+    lumenDashboard = getLumenDashBoard(doc)
+    layout = pn.Column(lumenDashboard.header)
+
     layout.server_doc(doc)
+
 
 def getSideBarLumenEditor(doc):
-    template = getLumenTemplate(doc)
-    layout = pn.Column(sizing_mode='stretch_width')
-    layout.append(getLumenDashBoard(doc).panel())
-    layout.append(template.sidebar.objects[0])
+    lumenDashboard = getLumenDashBoard(doc)
+    layout = pn.Column(lumenDashboard.panel, lumenDashboard.sidebar,  sizing_mode='stretch_width')
     layout.server_doc(doc)
+
 
 def getModalLumenEditor(doc):
-    template = getLumenTemplate(doc)
-    layout = template.modal.objects[0]
+    lumenDashboard = getLumenDashBoard(doc)
+    layout = pn.Column(lumenDashboard.modal)
     layout.server_doc(doc)
 
+
 def getJsAreaLumenEditor(doc):
-    template = getLumenTemplate(doc)
-    layout = template._js_area
-    layout.server_doc(doc)
+    ...
+    #template = getLumenTemplate(doc)
+    #layout = template._js_area
+    #layout.server_doc(doc)
 
 
 def getBusyIndicatorLumenEditor(doc):
-    template = getLumenTemplate(doc)
-    layout = template.busy_indicator
+    lumenDashboard = getLumenDashBoard(doc)
+    layout = pn.Column(lumenDashboard.busyIndicator, sizing_mode='stretch_width')
     layout.server_doc(doc)
 
+
 def getLocationLumenEditor(doc):
-    template = getLumenTemplate(doc)
-    layout = template.location.objects[0]
-    layout.server_doc(doc)
+    ...
+   #template = getLumenTemplate(doc)
+   #layout = template.location.objects[0]
+   #layout.server_doc(doc)
+
 
 def getAppBoardUpdateConfig(doc):
     layout = getLumenDashBoard(doc).panel()
     layout.server_doc(doc)
+
 
 def getAppEditMode(doc):
     vizAppList = getVizAppList(doc)
@@ -100,12 +113,12 @@ def getAppEditMode(doc):
     tabs = None
 
     for vizAppElement in vizAppList:
-        #profileList.append(vizAppElement.trace.dataProfileApp())
-        tabs = pn.Tabs((vizAppElement.title, vizAppElement.view ))
+        # profileList.append(vizAppElement.trace.dataProfileApp())
+        tabs = pn.Tabs((vizAppElement.title, vizAppElement.view))
         for trace in vizAppElement.traces:
             traceParam = vizAppElement.getTraceParamByTrace(trace)
-            tabs.append((trace.name, pn.Row(pn.Column(traceParam.viewProgress,traceParam.view), traceParam.panel)))
-            #tabs.link(vizAppElement.traceSelector, callbacks={'value': tabSelectioncallback})
+            tabs.append((trace.name, pn.Row(pn.Column(traceParam.viewProgress, traceParam.view), traceParam.panel)))
+            # tabs.link(vizAppElement.traceSelector, callbacks={'value': tabSelectioncallback})
 
         tabs.append(('Config Viz', vizAppElement.getConfigVizPanel))
 
@@ -116,7 +129,6 @@ def getAppEditMode(doc):
         )
         layout.append(row)
 
-
     for profile in profileList:
         pass
 
@@ -126,11 +138,11 @@ def getAppEditMode(doc):
 def getVizAppList(doc):
     # recherche de l'entité Viz contenant les informations permettant de construire dynamiquement le panel
     os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = "true"
-    boardId= doc.session_context.request.headers["board-id"]
+    boardId = doc.session_context.request.headers["board-id"]
     board = getBoard(boardId)
     session = doc.session_context.request.headers['bokeh-session-id'] + boardId
 
-    #init de la liste des viz configurées que nous renvoyons
+    # init de la liste des viz configurées que nous renvoyons
     vizAppList = []
 
     # on va chercher toutes les traces qui doivent être affichés sur les différentes viz
@@ -151,19 +163,19 @@ def getVizAppList(doc):
         for viz in vizListe:
             if viz in distinctVizListe:
                 # on nettoie les instances de viz de la session en mémoire
-                #VizConstructor.clearInstancesForSession(session)
+                # VizConstructor.clearInstancesForSession(session)
                 continue
             else:
                 distinctVizListe.append(viz)
 
     # on créer toutes les instances de viz nécéssaire (sans doublons)
     for viz in distinctVizListe:
-        vizAppElement = VizConstructor.getVizAppInstancesByVizEntityAndSessionId(viz.id,session)
+        vizAppElement = VizConstructor.getVizAppInstancesByVizEntityAndSessionId(viz.id, session)
         if not vizAppElement:
             if not viz.getVizApp:
                 # on initialize la viz à partir des parametres Json stockés en base
-                viz._vizApp = viz.createVizAppFromJsonParameters(initSession=True,session=session)
-            #vizAppElement = viz.getVizApp
+                viz._vizApp = viz.createVizAppFromJsonParameters(initSession=True, session=session)
+            # vizAppElement = viz.getVizApp
 
     for viz in distinctVizListe:
         # on cherche à nouveau l'instance construite
@@ -172,12 +184,12 @@ def getVizAppList(doc):
         # on cherche toutes les traces associés à la viz du même board
         traceEntityListeViz = viz.traceentity_set.filter(board=board)
 
-        for trace in traceEntityListeViz :
+        for trace in traceEntityListeViz:
             # on récupère l'instance exacte  de la trace commune au board
             for t in traceListe:
                 if t == trace:
                     trace = t
-                    print(trace,"   ",id(t),  'data Ready: ' ,trace.dataReady)
+                    print(trace, "   ", id(t), 'data Ready: ', trace.dataReady)
 
             vizAppElement.addTrace(trace)
 
@@ -191,7 +203,7 @@ def getVizAppList(doc):
 
         # lors de l'initialisation on charge dans un premier temps les données sample pour un affichage rapide des compossants coté client
         # surtout utile lorsqu'une Trace est chargée dans plusieurs Viz
-        #for vizApp in vizAppListForTrace:
+        # for vizApp in vizAppListForTrace:
         #    for trace in vizApp.traces:
         #        print("vizapp : ", vizApp , "trace: ", trace, '  ', id(trace), 'data Ready: ' ,trace.dataReady)
         #        if trace.dataLoading == True:
@@ -204,17 +216,19 @@ def getVizAppList(doc):
 
     return vizAppList
 
+
 def getBoard(id):
     board = BoardEntity.objects.get(id=id)
     return board
 
+
 def save():
     return "not implemented yet"
 
-def clearCache():
 
-    #VizConstructor.clearInstances()
-    #ConnectorInterface.instances.clear()
+def clearCache():
+    # VizConstructor.clearInstances()
+    # ConnectorInterface.instances.clear()
     LumenDashboard.clearInstances()
 
     return "Cleaned"
